@@ -45,7 +45,7 @@ export function ResultGallery() {
   if (!pending && !results) return null
 
   return (
-    <Card className="pointer-events-auto fixed bottom-20 left-0 right-0 z-20 mx-4 flex w-auto max-h-[50vh] translate-y-0 flex-col gap-3 border-white/10 bg-background/85 p-4 backdrop-blur-md md:bottom-auto md:left-auto md:right-6 md:top-1/2 md:mx-0 md:w-[min(440px,42vw)] md:max-h-none md:-translate-y-1/2">
+    <Card className="pointer-events-auto fixed top-14 bottom-[4.5rem] left-0 right-0 z-20 mx-4 flex w-auto translate-y-0 flex-col gap-3 overflow-hidden border-white/10 bg-background/85 p-4 backdrop-blur-md md:bottom-auto md:left-auto md:right-6 md:top-1/2 md:mx-0 md:w-[min(440px,42vw)] md:max-h-none md:overflow-visible md:-translate-y-1/2">
       <div className="flex items-center justify-between gap-2">
         <Badge variant="secondary" className="font-mono uppercase tracking-wider">
           {t('gallery.title')}
