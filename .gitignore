@@ -27,3 +27,8 @@ dist-ssr
 # Lives outside the shared repo so each contributor's local agent setup
 # stays private.
 .claude/
+
+# Per-run artefacts emitted by the validate-ui judge harness. Each run
+# writes a JSON capture + Claude verdict + markdown report under a
+# timestamped subdir; we don't want to commit those.
+tests/judge/runs/

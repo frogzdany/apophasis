@@ -1,0 +1,44 @@
+id: song_search_en
+description: |
+  Classic Lucy first-turn render flow. The user describes a half-remembered
+  song; Lucy must open a song-search panel BEFORE replying in voice, then
+  call search_music when the panel is submitted.
+language: en
+voiceName: Aoede
+inputMode: text
+searchPolicy: strict
+turns:
+  - kind: user
+    text: "I'm trying to find a song I half-remember, something melancholy with a sax, late 90s."
+    expect:
+      tools: [render_surface]
+  - kind: submit
+    eventName: search_music
+    dataModel:
+      mood: -0.4
+      instrument: ["Saxophone"]
+      era: ["1990s"]
+    toolMocks:
+      search_music:
+        results:
+          - id: mock-1
+            kind: music
+            title: "Careless Whisper"
+            subtitle: "George Michael"
+        count: 1
+        kind: music
+        summary: "1 mocked match."
+    expect:
+      tools: [search_music]
+
+rubric:
+  description: |
+    Turn 1: render_surface MUST fire before any voice prose. The voice
+    reply must be at most two short sentences and ENGLISH. The surface
+    must offer at least one Slider (mood) and one ChoicePicker (era OR
+    instrument), plus a submit Button.
+    Turn 2: search_music MUST fire with the user's submitted hints
+    folded into a sensible "fragment" arg. The voice reply may be
+    silent or one short ack.
+  speakLanguage: en
+  maxSentences: 2

@@ -1,0 +1,26 @@
+id: ambiguous_first_turn_en
+description: |
+  Ambiguous opening prompt — the system prompt explicitly tells Lucy
+  to render a small ChoicePicker panel listing the domains rather than
+  guessing. This validates that disambiguation behaviour.
+language: en
+voiceName: Aoede
+inputMode: text
+searchPolicy: strict
+turns:
+  - kind: user
+    text: "Help me find something from the 80s."
+    expect:
+      tools: [render_surface]
+
+rubric:
+  description: |
+    The user's intent is genuinely ambiguous (music? movie? book?
+    product?). Per the system prompt, Lucy must render a small
+    ChoicePicker (mutuallyExclusive) listing the domains rather than
+    guessing one. Calling any search_* tool here is wrong.
+    The surface MUST contain at least one ChoicePicker and one
+    submit Button. Voice reply optional; if present, English, one
+    short sentence inviting the user to pick.
+  speakLanguage: en
+  maxSentences: 2
