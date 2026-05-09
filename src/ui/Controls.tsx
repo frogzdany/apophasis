@@ -20,11 +20,13 @@ export function Controls() {
   const language = useStore((s) => s.language)
   const toggleLanguage = useStore((s) => s.toggleLanguage)
   const registerSurface = useStore((s) => s.registerSurface)
+  const clearSurfaces = useStore((s) => s.clearSurfaces)
   const { start, stop, error } = useVoiceSession()
   const { t } = useT()
   const [moreOpen, setMoreOpen] = useState(false)
 
   const onTest = (preset: DemoPreset) => {
+    clearSurfaces()
     const id = dispatchDemoSurface(preset)
     registerSurface(id)
     setMoreOpen(false)
