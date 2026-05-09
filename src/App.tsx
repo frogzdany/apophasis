@@ -54,7 +54,6 @@ export default function App() {
         dpr={lite ? 1 : [1, 2]}
         camera={{ position: [0, 0, 4.2], fov: 45 }}
         gl={{ antialias: !lite, toneMapping: THREE.ACESFilmicToneMapping }}
-        className="pointer-events-none md:pointer-events-auto"
       >
         <color attach="background" args={['#06070a']} />
         <ambientLight intensity={0.4} />
@@ -100,7 +99,7 @@ export default function App() {
 
       {/* Sidebar: hidden on mobile unless toggled */}
       <div className={`${sidebarOpen ? 'block' : 'hidden'} md:block`}>
-        <ConversationSidebar />
+        <ConversationSidebar forceShow={sidebarOpen} />
       </div>
 
       <ResultGallery />

@@ -26,7 +26,7 @@ function formatTime(ts: number) {
   return new Date(ts).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
 }
 
-export function ConversationSidebar() {
+export function ConversationSidebar({ forceShow = false }: { forceShow?: boolean } = {}) {
   const events = useStore((s) => s.events)
   const clearEvents = useStore((s) => s.clearEvents)
   const voiceActive = useStore((s) => s.voiceActive)
@@ -48,7 +48,7 @@ export function ConversationSidebar() {
     })
   }, [events.length])
 
-  if (!voiceActive && events.length === 0) return null
+  if (!forceShow && !voiceActive && events.length === 0) return null
 
   return (
     <Card
