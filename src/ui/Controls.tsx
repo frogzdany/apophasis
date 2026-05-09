@@ -1,4 +1,5 @@
 import { FlaskConical, Languages, Mic, MicOff, MoreHorizontal, Sparkles, Zap } from 'lucide-react'
+import { useState } from 'react'
 import { DEMO_LABELS, DEMO_PRESETS, type DemoPreset, dispatchDemoSurface } from '@/a2ui/demoSurface'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -21,10 +22,12 @@ export function Controls() {
   const registerSurface = useStore((s) => s.registerSurface)
   const { start, stop, error } = useVoiceSession()
   const { t } = useT()
+  const [moreOpen, setMoreOpen] = useState(false)
 
   const onTest = (preset: DemoPreset) => {
     const id = dispatchDemoSurface(preset)
     registerSurface(id)
+    setMoreOpen(false)
   }
 
   return (
@@ -104,7 +107,7 @@ export function Controls() {
       </span>
       {/* Mobile-only: "More" popover with remaining controls */}
       <span className="contents md:hidden">
-        <Popover>
+        <Popover open={moreOpen} onOpenChange={setMoreOpen}>
           <PopoverTrigger asChild>
             <Button variant="ghost" size="sm" title="More options">
               <MoreHorizontal className="size-3" />
@@ -115,7 +118,7 @@ export function Controls() {
             side="top"
             className="flex w-48 flex-col gap-1 border-white/10 bg-background/90 p-2 backdrop-blur-md"
           >
-            <Button variant="ghost" size="sm" className="justify-start" onClick={cyclePhase}>
+            <Button variant="ghost" size="sm" className="justify-start" onClick={() => { cyclePhase(); setMoreOpen(false) }}>
               <Sparkles className="size-3" />
               {t('controls.next')}
             </Button>
@@ -123,36 +126,23 @@ export function Controls() {
               variant={lite ? 'secondary' : 'ghost'}
               size="sm"
               className="justify-start"
-              onClick={toggleLite}
+              onClick={() => { toggleLite(); setMoreOpen(false) }}
             >
               <Zap className="size-3" />
               {lite ? t('controls.liteOn') : t('controls.lite')}
             </Button>
-            <Popover>
-              <PopoverTrigger asChild>
-                <Button variant="ghost" size="sm" className="justify-start">
-                  <FlaskConical className="size-3" />
-                  {t('controls.test')}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent
-                align="start"
-                side="top"
-                className="flex w-48 flex-col gap-1 border-white/10 bg-background/90 p-2 backdrop-blur-md"
+            {DEMO_PRESETS.map((preset) => (
+              <Button
+                key={preset}
+                variant="ghost"
+                size="sm"
+                className="justify-start"
+                onClick={() => onTest(preset)}
               >
-                {DEMO_PRESETS.map((preset) => (
-                  <Button
-                    key={preset}
-                    variant="ghost"
-                    size="sm"
-                    className="justify-start"
-                    onClick={() => onTest(preset)}
-                  >
-                    {t(`preset.${preset}`) || DEMO_LABELS[preset]}
-                  </Button>
-                ))}
-              </PopoverContent>
-            </Popover>
+                <FlaskConical className="size-3" />
+                {t(`preset.${preset}`) || DEMO_LABELS[preset]}
+              </Button>
+            ))}
           </PopoverContent>
         </Popover>
       </span>
