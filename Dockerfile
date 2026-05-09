@@ -26,6 +26,11 @@ COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile --production
 
 COPY server ./server
+# tsconfig.json + src/ are needed at runtime so Bun can resolve the `@/`
+# path alias when server modules import shared code (notably
+# src/gemini/liveConfig.ts, the single source of truth for Live config).
+COPY tsconfig.json tsconfig.app.json tsconfig.node.json ./
+COPY src ./src
 COPY --from=builder /app/dist ./dist
 
 # Cloud Run injects PORT; default to 8080 for local docker run.
