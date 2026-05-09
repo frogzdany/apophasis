@@ -5,7 +5,6 @@ import type { Step } from 'react-joyride'
 const DESKTOP_ONLY = new Set([
   '[data-tour="voice-selector"]',
   '[data-tour="mic-selector"]',
-  '[data-tour="lang-toggle"]',
   '[data-tour="lite-toggle"]',
 ])
 
