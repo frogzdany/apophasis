@@ -1,4 +1,4 @@
-import { FlaskConical, Languages, Mic, MicOff, Sparkles, Zap } from 'lucide-react'
+import { FlaskConical, Languages, Mic, MicOff, MoreHorizontal, Sparkles, Zap } from 'lucide-react'
 import { DEMO_LABELS, DEMO_PRESETS, type DemoPreset, dispatchDemoSurface } from '@/a2ui/demoSurface'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -32,6 +32,7 @@ export function Controls() {
       <Badge variant="secondary" className="font-mono uppercase tracking-widest">
         {t(`phase.${phase}`)}
       </Badge>
+      {/* Desktop-only: mic, voice, next phase inline */}
       <span className="hidden md:contents">
         <MicSelector />
         <VoiceSelector />
@@ -40,6 +41,19 @@ export function Controls() {
           {t('controls.next')}
         </Button>
       </span>
+      {/* Language toggle — always visible */}
+      <Button
+        data-tour="lang-toggle"
+        variant="ghost"
+        size="sm"
+        onClick={toggleLanguage}
+        title={t('controls.langTooltip')}
+        aria-label={t('controls.langTooltip')}
+      >
+        <Languages className="size-3" />
+        {LANGUAGE_LABEL[language]}
+      </Button>
+      {/* Talk / Stop — always visible */}
       {voiceActive ? (
         <Button variant="destructive" size="sm" onClick={stop}>
           <MicOff className="size-3" />
@@ -51,6 +65,7 @@ export function Controls() {
           {t('controls.talk')}
         </Button>
       )}
+      {/* Desktop-only: test, lite inline */}
       <span className="hidden md:contents">
         <Popover>
           <PopoverTrigger asChild>
@@ -86,17 +101,60 @@ export function Controls() {
           <Zap className="size-3" />
           {lite ? t('controls.liteOn') : t('controls.lite')}
         </Button>
-        <Button
-          data-tour="lang-toggle"
-          variant="ghost"
-          size="sm"
-          onClick={toggleLanguage}
-          title={t('controls.langTooltip')}
-          aria-label={t('controls.langTooltip')}
-        >
-          <Languages className="size-3" />
-          {LANGUAGE_LABEL[language]}
-        </Button>
+      </span>
+      {/* Mobile-only: "More" popover with remaining controls */}
+      <span className="contents md:hidden">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="sm" title="More options">
+              <MoreHorizontal className="size-3" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="end"
+            side="top"
+            className="flex w-48 flex-col gap-1 border-white/10 bg-background/90 p-2 backdrop-blur-md"
+          >
+            <Button variant="ghost" size="sm" className="justify-start" onClick={cyclePhase}>
+              <Sparkles className="size-3" />
+              {t('controls.next')}
+            </Button>
+            <Button
+              variant={lite ? 'secondary' : 'ghost'}
+              size="sm"
+              className="justify-start"
+              onClick={toggleLite}
+            >
+              <Zap className="size-3" />
+              {lite ? t('controls.liteOn') : t('controls.lite')}
+            </Button>
+            <Popover>
+              <PopoverTrigger asChild>
+                <Button variant="ghost" size="sm" className="justify-start">
+                  <FlaskConical className="size-3" />
+                  {t('controls.test')}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                align="start"
+                side="top"
+                className="flex w-48 flex-col gap-1 border-white/10 bg-background/90 p-2 backdrop-blur-md"
+              >
+                {DEMO_PRESETS.map((preset) => (
+                  <Button
+                    key={preset}
+                    variant="ghost"
+                    size="sm"
+                    className="justify-start"
+                    onClick={() => onTest(preset)}
+                  >
+                    {t(`preset.${preset}`) || DEMO_LABELS[preset]}
+                  </Button>
+                ))}
+              </PopoverContent>
+            </Popover>
+          </PopoverContent>
+        </Popover>
       </span>
       {error && <span className="ml-1 max-w-[280px] text-destructive text-xs">{error}</span>}
     </div>
