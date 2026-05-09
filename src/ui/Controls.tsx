@@ -1,4 +1,14 @@
-import { FlaskConical, Keyboard, Languages, Mic, MicOff, Sparkles, Zap } from 'lucide-react'
+import {
+  FlaskConical,
+  Keyboard,
+  Languages,
+  Mic,
+  MicOff,
+  MoreHorizontal,
+  Sparkles,
+  Zap,
+} from 'lucide-react'
+import { useState } from 'react'
 import { DEMO_LABELS, DEMO_PRESETS, type DemoPreset, dispatchDemoSurface } from '@/a2ui/demoSurface'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -22,25 +32,33 @@ export function Controls() {
   const inputMode = useStore((s) => s.inputMode)
   const toggleInputMode = useStore((s) => s.toggleInputMode)
   const registerSurface = useStore((s) => s.registerSurface)
+  const clearSurfaces = useStore((s) => s.clearSurfaces)
   const { start, stop, toggleMute, error } = useVoiceSession()
   const { t } = useT()
+  const [moreOpen, setMoreOpen] = useState(false)
 
   const onTest = (preset: DemoPreset) => {
+    clearSurfaces()
     const id = dispatchDemoSurface(preset)
     registerSurface(id)
+    setMoreOpen(false)
   }
 
   return (
-    <div className="pointer-events-auto fixed bottom-7 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-background/55 px-3 py-2 backdrop-blur-md">
+    <div data-tour="controls" className="pointer-events-auto fixed bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-background/55 px-3 py-2 backdrop-blur-md md:bottom-7">
       <Badge variant="secondary" className="font-mono uppercase tracking-widest">
         {t(`phase.${phase}`)}
       </Badge>
-      <MicSelector />
-      <VoiceSelector />
-      <Button variant="ghost" size="sm" onClick={cyclePhase}>
-        <Sparkles className="size-3" />
-        {t('controls.next')}
-      </Button>
+      {/* Desktop-only: mic, voice, next phase inline */}
+      <span className="hidden md:contents">
+        <MicSelector />
+        <VoiceSelector />
+        <Button variant="ghost" size="sm" onClick={cyclePhase}>
+          <Sparkles className="size-3" />
+          {t('controls.next')}
+        </Button>
+      </span>
+      {/* Input-mode toggle — always visible (gates voice vs text before starting) */}
       <Button
         variant={inputMode === 'text' ? 'secondary' : 'ghost'}
         size="sm"
@@ -51,6 +69,19 @@ export function Controls() {
         {inputMode === 'text' ? <Keyboard className="size-3" /> : <Mic className="size-3" />}
         {t(inputMode === 'text' ? 'controls.inputMode.text' : 'controls.inputMode.voice')}
       </Button>
+      {/* Language toggle — always visible */}
+      <Button
+        data-tour="lang-toggle"
+        variant="ghost"
+        size="sm"
+        onClick={toggleLanguage}
+        title={t('controls.langTooltip')}
+        aria-label={t('controls.langTooltip')}
+      >
+        <Languages className="size-3" />
+        {LANGUAGE_LABEL[language]}
+      </Button>
+      {/* Talk / Stop / Mute — always visible */}
       {voiceActive ? (
         <>
           <Button variant={micMuted ? 'secondary' : 'ghost'} size="sm" onClick={toggleMute}>
@@ -63,54 +94,89 @@ export function Controls() {
           </Button>
         </>
       ) : (
-        <Button size="sm" onClick={start}>
+        <Button data-tour="talk-button" size="sm" onClick={start}>
           {inputMode === 'text' ? <Keyboard className="size-3" /> : <Mic className="size-3" />}
           {t('controls.talk')}
         </Button>
       )}
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="ghost" size="sm" title={t('controls.testTooltip')}>
-            <FlaskConical className="size-3" />
-            {t('controls.test')}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent
-          align="end"
-          className="flex w-56 flex-col gap-1 border-white/10 bg-background/90 p-2 backdrop-blur-md"
+      {/* Desktop-only: test, lite inline */}
+      <span className="hidden md:contents">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="sm" title={t('controls.testTooltip')}>
+              <FlaskConical className="size-3" />
+              {t('controls.test')}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="end"
+            className="flex w-56 flex-col gap-1 border-white/10 bg-background/90 p-2 backdrop-blur-md"
+          >
+            {DEMO_PRESETS.map((preset) => (
+              <Button
+                key={preset}
+                variant="ghost"
+                size="sm"
+                className="justify-start"
+                onClick={() => onTest(preset)}
+              >
+                {t(`preset.${preset}`) || DEMO_LABELS[preset]}
+              </Button>
+            ))}
+          </PopoverContent>
+        </Popover>
+        <Button
+          data-tour="lite-toggle"
+          variant={lite ? 'secondary' : 'ghost'}
+          size="sm"
+          onClick={toggleLite}
+          title={t('controls.liteTooltip')}
         >
-          {DEMO_PRESETS.map((preset) => (
+          <Zap className="size-3" />
+          {lite ? t('controls.liteOn') : t('controls.lite')}
+        </Button>
+      </span>
+      {/* Mobile-only: "More" popover with remaining controls */}
+      <span className="contents md:hidden">
+        <Popover open={moreOpen} onOpenChange={setMoreOpen}>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="sm" title="More options">
+              <MoreHorizontal className="size-3" />
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="end"
+            side="top"
+            className="flex w-48 flex-col gap-1 border-white/10 bg-background/90 p-2 backdrop-blur-md"
+          >
+            <Button variant="ghost" size="sm" className="justify-start" onClick={() => { cyclePhase(); setMoreOpen(false) }}>
+              <Sparkles className="size-3" />
+              {t('controls.next')}
+            </Button>
             <Button
-              key={preset}
-              variant="ghost"
+              variant={lite ? 'secondary' : 'ghost'}
               size="sm"
               className="justify-start"
-              onClick={() => onTest(preset)}
+              onClick={() => { toggleLite(); setMoreOpen(false) }}
             >
-              {t(`preset.${preset}`) || DEMO_LABELS[preset]}
+              <Zap className="size-3" />
+              {lite ? t('controls.liteOn') : t('controls.lite')}
             </Button>
-          ))}
-        </PopoverContent>
-      </Popover>
-      <Button
-        variant={lite ? 'secondary' : 'ghost'}
-        size="sm"
-        onClick={toggleLite}
-        title={t('controls.liteTooltip')}
-      >
-        <Zap className="size-3" />
-        {lite ? t('controls.liteOn') : t('controls.lite')}
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={toggleLanguage}
-        title={t('controls.langTooltip')}
-        aria-label={t('controls.langTooltip')}
-      >
-        <Languages className="size-3" />
-        {LANGUAGE_LABEL[language]}
-      </Button>
+            {DEMO_PRESETS.map((preset) => (
+              <Button
+                key={preset}
+                variant="ghost"
+                size="sm"
+                className="justify-start"
+                onClick={() => onTest(preset)}
+              >
+                <FlaskConical className="size-3" />
+                {t(`preset.${preset}`) || DEMO_LABELS[preset]}
+              </Button>
+            ))}
+          </PopoverContent>
+        </Popover>
+      </span>
       {error && <span className="ml-1 max-w-[280px] text-destructive text-xs">{error}</span>}
     </div>
   )

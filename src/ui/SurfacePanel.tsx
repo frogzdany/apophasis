@@ -45,7 +45,7 @@ export function SurfacePanel() {
   if (!activeSurfaceId) {
     if (surfacePending) {
       return (
-        <Card className="pointer-events-auto fixed top-1/2 right-6 z-20 flex w-[min(440px,42vw)] -translate-y-1/2 items-center gap-2 border-white/10 bg-background/85 p-5 backdrop-blur-md">
+        <Card className="pointer-events-auto fixed top-14 bottom-[4.5rem] left-0 right-0 z-20 mx-4 flex w-auto translate-y-0 items-center gap-2 border-white/10 bg-background/85 p-5 backdrop-blur-md md:bottom-auto md:left-auto md:right-6 md:top-1/2 md:mx-0 md:w-[min(440px,42vw)] md:-translate-y-1/2">
           <Loader2 className="size-4 animate-spin text-muted-foreground" />
           <span className="text-muted-foreground text-sm">{t('surface.preparing')}</span>
         </Card>
@@ -64,8 +64,8 @@ export function SurfacePanel() {
   }
 
   return (
-    <Card className="pointer-events-auto fixed top-1/2 right-6 z-20 flex w-[min(440px,42vw)] -translate-y-1/2 flex-col gap-3 border-white/10 bg-background/85 p-5 backdrop-blur-md">
-      <div className="flex items-center justify-between gap-2">
+    <Card className="pointer-events-auto fixed top-14 bottom-[4.5rem] left-0 right-0 z-20 mx-4 flex w-auto translate-y-0 flex-col gap-3 overflow-hidden border-white/10 bg-background/85 p-5 backdrop-blur-md md:bottom-auto md:left-auto md:right-6 md:top-1/2 md:mx-0 md:w-[min(440px,42vw)] md:max-h-none md:overflow-visible md:-translate-y-1/2">
+      <div className="flex shrink-0 items-center justify-between gap-2">
         <Badge variant="secondary" className="font-mono uppercase tracking-wider">
           {t('surface.iter', { id: activeSurfaceId, n: iteration })}
         </Badge>
@@ -91,7 +91,7 @@ export function SurfacePanel() {
           </Button>
         </div>
       </div>
-      <div className="a2ui-surface text-foreground">
+      <div className="a2ui-surface min-h-0 flex-1 overflow-y-auto text-foreground">
         <A2uiSurface surface={surface} />
       </div>
     </Card>
