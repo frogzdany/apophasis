@@ -310,10 +310,6 @@ store; `search_web` must show provenance from all three lanes; etc.).
 If a key is missing the matching tests skip with a clear message.
 See [tests/README.md](tests/README.md) for the extension checklist.
 
-For a hands-on, **Spanish-language testing & demo guide** — voice
-prompts that trigger each tool, what to look for in the UI, common
-failure modes — see [docs/GUIA_PRUEBAS.es.md](docs/GUIA_PRUEBAS.es.md).
-
 The headless `validate:ui` runner (`bun run validate:ui scripts/validate-ui/scenarios/*.json`)
 is a separate eval that boots a text-mode Gemini session and checks
 that the system prompt still produces well-formed A2UI surfaces — useful

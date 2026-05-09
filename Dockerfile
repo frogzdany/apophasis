@@ -7,17 +7,12 @@ WORKDIR /app
 COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile
 
-COPY tsconfig.json tsconfig.app.json tsconfig.node.json tsconfig.tests.json \
-     vite.config.ts biome.json eslint.config.js index.html components.json ./
+COPY tsconfig.json tsconfig.app.json tsconfig.node.json vite.config.ts \
+     biome.json eslint.config.js index.html components.json ./
 COPY src ./src
 COPY public ./public
 
-# Bypass `bun run build` (which is `tsc -b && vite build`) because tsc -b
-# resolves tsconfig.json's references — including tsconfig.tests.json. The
-# config file itself is copied above so rolldown can resolve the reference,
-# but its `include` paths (tests/, vitest configs) are intentionally absent
-# from the prod image. Restrict tsc -b to the app + node projects.
-RUN bunx tsc -b tsconfig.app.json tsconfig.node.json && bunx vite build
+RUN bun run build
 
 
 # ─── Stage 2: runtime — Bun server + static assets ─────────────────────────
@@ -31,11 +26,6 @@ COPY package.json bun.lock ./
 RUN bun install --frozen-lockfile --production
 
 COPY server ./server
-# tsconfig.json + src/ are needed at runtime so Bun can resolve the `@/`
-# path alias when server modules import shared code (notably
-# src/gemini/liveConfig.ts, the single source of truth for Live config).
-COPY tsconfig.json tsconfig.app.json tsconfig.node.json ./
-COPY src ./src
 COPY --from=builder /app/dist ./dist
 
 # Cloud Run injects PORT; default to 8080 for local docker run.

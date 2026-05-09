@@ -1,33 +1,36 @@
 // Mints short-lived ephemeral auth tokens for the browser to open a Gemini
 // Live WebSocket without ever seeing the long-lived API key.
 //
-// The token is locked to a single model + the full session config built by
-// src/gemini/liveConfig.ts. Because liveConnectConstraints with a config
-// payload causes the Live API to drop ANY client-supplied config field that
-// isn't in the constraints, the constraints have to mirror the browser's
-// live.connect() config exactly. Hence the shared buildLiveConfig builder
-// — same source of truth on both sides.
-//
+// The token is locked to a single model and a single new-session window so a
+// stolen token is useful only for a fresh connection within a short window.
 // See https://ai.google.dev/gemini-api/docs/ephemeral-tokens
 
 import { GoogleGenAI } from '@google/genai'
-import type { Language } from '../src/lib/messages'
-import {
-  buildLiveConfig,
-  LIVE_MODEL,
-  VOICE_NAMES,
-  type VoiceName,
-} from '../src/gemini/liveConfig'
 
 const TOKEN_TTL_MS = 30 * 60_000 // overall token validity
 const NEW_SESSION_WINDOW_MS = 2 * 60_000 // time the browser has to *open* a session
 
-// Voices the client is allowed to request, sourced from the same allowlist
-// the UI uses. Anything outside this set falls back to DEFAULT_VOICE.
-const VALID_VOICES: ReadonlySet<VoiceName> = new Set(VOICE_NAMES)
-const VALID_LANGUAGES: ReadonlySet<Language> = new Set(['en', 'es'])
-const DEFAULT_VOICE: VoiceName = 'Aoede'
-const DEFAULT_LANGUAGE: Language = 'en'
+const LIVE_MODEL = process.env.GEMINI_LIVE_MODEL ?? 'gemini-3.1-flash-live-preview'
+
+// Voices and languages the client is allowed to request. Anything outside
+// these allowlists falls back to a safe default. Keep in sync with
+// src/gemini/liveSession.ts.
+const VALID_VOICES = new Set([
+  'Aoede',
+  'Charon',
+  'Fenrir',
+  'Kore',
+  'Leda',
+  'Orus',
+  'Puck',
+  'Zephyr',
+])
+const LANGUAGE_CODES: Record<string, string> = {
+  en: 'en-US',
+  es: 'es-US',
+}
+const DEFAULT_VOICE = 'Aoede'
+const DEFAULT_LANGUAGE = 'en'
 
 export interface MintOptions {
   voice?: string
@@ -66,26 +69,18 @@ export async function mintEphemeralToken(opts: MintOptions = {}): Promise<Minted
   const expireTime = new Date(now + TOKEN_TTL_MS).toISOString()
   const newSessionExpireTime = new Date(now + NEW_SESSION_WINDOW_MS).toISOString()
 
-  const voice: VoiceName =
-    opts.voice && VALID_VOICES.has(opts.voice as VoiceName)
-      ? (opts.voice as VoiceName)
-      : DEFAULT_VOICE
-  const language: Language =
-    opts.language && VALID_LANGUAGES.has(opts.language as Language)
-      ? (opts.language as Language)
-      : DEFAULT_LANGUAGE
-
-  // The full Live config — system instruction, tools, toolConfig, VAD, etc.
-  // — must live INSIDE the constraints, not just in the browser's
-  // live.connect call. Whatever the browser tries to add via live.connect is
-  // silently dropped when constraints are present. buildLiveConfig is the
-  // single source of truth used by both call sites.
-  const liveConfig = buildLiveConfig({ language, voiceName: voice })
+  // Live API treats `liveConnectConstraints` as the source of truth — any
+  // client-side config that wasn't in the constraints is silently dropped.
+  // So speechConfig (voice + language) MUST be baked into the token here,
+  // otherwise the API falls back to a default voice regardless of what the
+  // browser asked for.
+  const voice = opts.voice && VALID_VOICES.has(opts.voice) ? opts.voice : DEFAULT_VOICE
+  const langKey = opts.language && opts.language in LANGUAGE_CODES ? opts.language : DEFAULT_LANGUAGE
+  const languageCode = LANGUAGE_CODES[langKey]
 
   // SDK types for authTokens lag the API; cast through a minimal shape.
-  const tokensApi = (
-    ai as unknown as { authTokens: { create: (p: unknown) => Promise<{ name?: string }> } }
-  ).authTokens
+  const tokensApi = (ai as unknown as { authTokens: { create: (p: unknown) => Promise<{ name?: string }> } })
+    .authTokens
 
   const created = await tokensApi.create({
     config: {
@@ -94,7 +89,13 @@ export async function mintEphemeralToken(opts: MintOptions = {}): Promise<Minted
       newSessionExpireTime,
       liveConnectConstraints: {
         model: LIVE_MODEL,
-        config: liveConfig,
+        config: {
+          responseModalities: ['AUDIO'],
+          speechConfig: {
+            languageCode,
+            voiceConfig: { prebuiltVoiceConfig: { voiceName: voice } },
+          },
+        },
       },
       httpOptions: { apiVersion: 'v1alpha' },
     },

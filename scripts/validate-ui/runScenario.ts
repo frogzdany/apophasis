@@ -16,13 +16,6 @@ import {
   assertDataModelKeys,
   assertSurfaceStructure,
 } from './assertions'
-import { streamTtsToSession } from './ttsBridgeNode'
-import type {
-  CapturedTurn,
-  InputMode,
-  ScenarioArtefact,
-  ScenarioRubric,
-} from './types'
 
 export interface SurfaceExpect {
   surfaceId?: string
@@ -72,9 +65,6 @@ export interface Scenario {
   // 'live': forwards search tool calls to the real provider handlers.
   searchPolicy?: 'strict' | 'live'
   turns: ScenarioTurn[]
-  // Optional rubric for the judge. When absent, the run produces an
-  // artefact but the judge has nothing to grade against and is skipped.
-  rubric?: ScenarioRubric
 }
 
 export interface TurnReport {
@@ -94,30 +84,12 @@ export interface ScenarioReport {
   language: Language
   passed: boolean
   turns: TurnReport[]
-  // Captured artefact suitable for the judge. Same data as `turns` but in
-  // the shape the judge expects (with transcripts, timings, and component
-  // types). Always populated.
-  artefact: ScenarioArtefact
 }
 
 interface RunOptions {
   apiKey: string
   // Per-turn timeout for waiting on `turnComplete`. Defaults to 30s.
   turnTimeoutMs?: number
-  // 'text' (default): drive turns via sendUserText (sendClientContent
-  // under the hood). Cheap, fast, doesn't exercise the audio pipeline.
-  // 'tts': synthesise the user prompt to audio via Gemini TTS and pump
-  // 16 kHz frames into the session, exactly as mic input would. Slower
-  // and more expensive but covers VAD + audio decoder.
-  inputMode?: InputMode
-  // Voice for TTS-mode synthesis. Defaults to Kore.
-  ttsVoice?: string
-}
-
-// Browser-side helpers we don't ship with the harness. Mirrors what the
-// (real) DOM provides so we can compile under Bun.
-function nowIso(): string {
-  return new Date().toISOString()
 }
 
 export async function runScenario(
@@ -142,13 +114,6 @@ export async function runScenario(
   let turnFailures: AssertionFailure[] = []
   let resolveTurn: (() => void) | null = null
   let rejectTurn: ((err: Error) => void) | null = null
-  // Tracks the typed component (Slider / ChoicePicker / etc) per id within
-  // the most recently rendered surface. Lets the artefact carry types
-  // without re-walking the components array.
-  let lastSurfaceComponentTypes: Record<string, string> = {}
-  // Accumulates Lucy's spoken reply via outputTranscript events, then
-  // gets snapshotted into the artefact at turn close.
-  let turnTranscriptBuf = ''
 
   const handleToolCall = (fc: FunctionCall) => {
     if (!fc?.name || !fc?.id) return
@@ -179,7 +144,6 @@ export async function runScenario(
               (args.data_model as Record<string, unknown>) ?? {},
             ),
           )
-          lastSurfaceComponentTypes = extractComponentTypes(args.components)
 
           // Drop any prior surface with this id so the second render in a
           // turn doesn't error out on duplicate-id, mirroring useVoiceSession.
@@ -231,10 +195,6 @@ export async function runScenario(
           if (args.components) {
             // Re-run structural assertions on any replacement payload.
             turnFailures.push(...assertSurfaceStructure(args.components))
-            lastSurfaceComponentTypes = {
-              ...lastSurfaceComponentTypes,
-              ...extractComponentTypes(args.components),
-            }
             messages.push({
               version: 'v0.9',
               updateComponents: { surfaceId, components: args.components },
@@ -349,9 +309,6 @@ export async function runScenario(
   session.addEventListener('toolCall', (e) => {
     handleToolCall((e as CustomEvent<FunctionCall>).detail)
   })
-  session.addEventListener('outputTranscript', (e) => {
-    turnTranscriptBuf += (e as CustomEvent<string>).detail
-  })
   session.addEventListener('turnComplete', () => {
     resolveTurn?.()
   })
@@ -365,11 +322,9 @@ export async function runScenario(
     rejectTurn?.(new Error('session closed before turnComplete'))
   })
 
-  const startedAt = nowIso()
   await session.connect()
 
-  const capturedTurns: CapturedTurn[] = []
-  const report: Omit<ScenarioReport, 'artefact'> = {
+  const report: ScenarioReport = {
     name: scenario.name,
     language: scenario.language,
     passed: true,
@@ -382,9 +337,6 @@ export async function runScenario(
       collectedToolCalls = []
       turnFailures = []
       currentMocks = turn.toolMocks ?? {}
-      lastSurfaceComponentTypes = {}
-      turnTranscriptBuf = ''
-      const turnStart = Date.now()
 
       let userText: string
       if (turn.kind === 'user') {
@@ -412,20 +364,7 @@ export async function runScenario(
         rejectTurn?.(new Error(`turn ${i} timed out after ${timeoutMs}ms`))
       }, timeoutMs)
 
-      if (opts.inputMode === 'tts') {
-        // Surface-event submissions stay on the text path: they're
-        // synthetic markers from our submit handler, not natural-language
-        // user prose, and TTS-ing them produces nonsense audio.
-        if (turn.kind === 'submit') {
-          session.sendUserText(userText)
-        } else {
-          // Awaits internally — frames pace at ~128 ms per chunk so the
-          // server VAD sees a realistic cadence.
-          await streamTtsToSession(userText, session, opts.apiKey, opts.ttsVoice)
-        }
-      } else {
-        session.sendUserText(userText)
-      }
+      session.sendUserText(userText)
 
       try {
         await turnPromise
@@ -476,37 +415,13 @@ export async function runScenario(
         surface: surfaceSnapshot,
         failures: turnFailures,
       })
-      capturedTurns.push({
-        index: i,
-        promptInput: userText,
-        lucyTranscript: turnTranscriptBuf.trim(),
-        toolCalls: collectedToolCalls.map((c) => ({ name: c.name, args: c.args })),
-        surface: surfaceSnapshot
-          ? {
-              ...surfaceSnapshot,
-              componentTypes: lastSurfaceComponentTypes,
-            }
-          : undefined,
-        failures: turnFailures.map((f) => ({ rule: f.rule, detail: f.detail })),
-        elapsedMs: Date.now() - turnStart,
-      })
       if (turnFailures.length > 0) report.passed = false
     }
   } finally {
     session.close()
   }
 
-  const artefact: ScenarioArtefact = {
-    scenarioId: scenario.name,
-    language: scenario.language,
-    inputMode: opts.inputMode ?? 'text',
-    startedAt,
-    finishedAt: nowIso(),
-    rubric: scenario.rubric ?? { description: '' },
-    turns: capturedTurns,
-  }
-
-  return { ...report, artefact }
+  return report
 }
 
 function buildSurfaceEventText(
@@ -526,21 +441,6 @@ function buildSurfaceEventText(
 
 function isRecord(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v)
-}
-
-// Walks the components array and returns a map of id → component type
-// (e.g. "Slider", "ChoicePicker"). Used to build the artefact's
-// componentTypes map so the judge can reason about structure without
-// re-walking the raw payload.
-function extractComponentTypes(components: unknown): Record<string, string> {
-  if (!Array.isArray(components)) return {}
-  const out: Record<string, string> = {}
-  for (const c of components) {
-    if (!isRecord(c)) continue
-    if (typeof c.id !== 'string' || typeof c.component !== 'string') continue
-    out[c.id] = c.component
-  }
-  return out
 }
 
 function checkToolExpectations(

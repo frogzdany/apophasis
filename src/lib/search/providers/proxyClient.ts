@@ -4,7 +4,7 @@
 
 import { logEvent } from '../../sessionLogger'
 
-export type ProxyKind = 'web' | 'book' | 'place' | 'product' | 'video'
+export type ProxyKind = 'web' | 'book' | 'place' | 'product'
 
 export interface ProxyResult {
   source: string
@@ -30,21 +30,13 @@ export interface ProxyResponse {
 }
 
 export interface ProxyRequest {
-  // Optional because the coordinate / id-based Google Places routes
-  // (places_nearby, place_details) don't take a free-text query.
-  query?: string
+  query: string
   max_results?: number
   // Place-only optional hints.
   location?: string
   ll?: string
   hl?: string
   gl?: string
-  // Google Places API (New) extras.
-  lat?: number
-  lng?: number
-  radius_m?: number
-  included_types?: string[]
-  place_id?: string
 }
 
 export async function callProxy(provider: string, body: ProxyRequest): Promise<ProxyResponse> {

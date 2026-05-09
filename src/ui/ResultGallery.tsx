@@ -45,7 +45,7 @@ export function ResultGallery() {
   if (!pending && !results) return null
 
   return (
-    <Card className="pointer-events-auto fixed top-14 bottom-[4.5rem] left-0 right-0 z-20 mx-4 flex w-auto translate-y-0 flex-col gap-3 overflow-hidden border-white/10 bg-background/85 p-4 backdrop-blur-md md:bottom-auto md:left-auto md:right-6 md:top-1/2 md:mx-0 md:w-[min(440px,42vw)] md:max-h-none md:overflow-visible md:-translate-y-1/2">
+    <Card className="pointer-events-auto fixed top-1/2 right-6 z-20 flex w-[min(440px,42vw)] -translate-y-1/2 flex-col gap-3 border-white/10 bg-background/85 p-4 backdrop-blur-md">
       <div className="flex items-center justify-between gap-2">
         <Badge variant="secondary" className="font-mono uppercase tracking-wider">
           {t('gallery.title')}
@@ -126,7 +126,7 @@ function ResultCard({ result, t }: { result: SearchResult; t: ReturnType<typeof 
             <Button variant="ghost" size="xs" asChild>
               <a href={result.externalUrl} target="_blank" rel="noreferrer">
                 <ExternalLink className="size-3" />
-                {t(`gallery.open.${result.kind}`)}
+                {t('gallery.open')}
               </a>
             </Button>
           )}

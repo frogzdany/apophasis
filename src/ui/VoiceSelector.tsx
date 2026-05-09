@@ -17,7 +17,7 @@ export function VoiceSelector() {
 
   return (
     <Select value={voiceName} onValueChange={(v) => setVoiceName(v as VoiceName)}>
-      <SelectTrigger data-tour="voice-selector" size="sm" className="w-[124px]" title={t('voice.title')}>
+      <SelectTrigger size="sm" className="w-[124px]" title={t('voice.title')}>
         {/* Override the default SelectValue rendering so the trigger shows
             only the name on a single line — the description belongs in the
             dropdown only. */}

@@ -1,26 +1,28 @@
 // Bun HTTP server for the Apophasis demo.
 //
 // Routes:
-//   POST /api/log              — append a JSONL event to the session log store
-//   GET  /api/health           — liveness + log-backend description
-//   POST /api/gemini-token     — mint a short-lived Gemini Live ephemeral token
-//   POST /api/search/<x>       — proxy for upstream search providers
-//   POST /api/tts              — synthesise text → 16-bit PCM (drives the
-//                                text-input demo flow; replays into Live)
-//   *                          — when DIST_DIR is set, serve static SPA assets
-//                                with SPA fallback to index.html
+//   POST /api/log               — append a JSONL event to the session log store
+//   GET  /api/health            — liveness + log-backend description
+//   POST /api/gemini-token      — mint a short-lived Gemini Live ephemeral token
+//   POST /api/interpret-drawing — vision + intent pipeline → DrawingInterpretation
+//   POST /api/generate-surface  — DrawingInterpretation → A2UI component spec
+//   *                           — when DIST_DIR is set, serve static SPA assets
+//                                 with SPA fallback to index.html
 //
 // Run alongside Vite (dev):    bun run server
 // Run as the prod artifact:    bun run server/index.ts (DIST_DIR=/app/dist)
 
 import { stat } from 'node:fs/promises'
 import { extname, join, normalize, resolve } from 'node:path'
+import { handleCopilotKitRequest } from './copilotRuntime'
+import { generateSurface } from './generateSurface'
 import { mintEphemeralToken } from './geminiToken'
+import { interpretDrawing } from './interpretDrawing'
+import type { DrawingInterpretation } from './interpretDrawing'
 import { appendLog, describeStore } from './logStore'
 import { cacheStats } from './searchCache'
 import { handleSearchRequest } from './searchProxy'
 import { searchRateOk } from './searchRateLimit'
-import { handleTtsRequest } from './ttsProxy'
 
 interface LogEntry {
   sessionId: string
@@ -78,11 +80,18 @@ const server = Bun.serve({
     // ─── API ────────────────────────────────────────────────────────────
     if (url.pathname === '/api/health') {
       // Health stays open so Cloud Run probes and curl-from-shell work.
-      return json({ ok: true, store: describeStore(), searchCache: cacheStats() }, 200, req)
+      return json(
+        { ok: true, store: describeStore(), searchCache: cacheStats() },
+        200,
+        req,
+      )
     }
 
     // Everything else under /api/* is gated by Origin allowlist.
-    if (url.pathname.startsWith('/api/') && !originAllowed(req)) {
+    // In dev mode (no DIST_DIR) skip the check — Vite's proxy rewrites headers
+    // in ways that make the origin comparison unreliable.
+    const isProd = Boolean(DIST_DIR)
+    if (isProd && url.pathname.startsWith('/api/') && !originAllowed(req)) {
       return json({ error: 'forbidden origin' }, 403, req)
     }
 
@@ -121,11 +130,62 @@ const server = Bun.serve({
       }
     }
 
+    if (url.pathname === '/api/copilotkit' && req.method === 'POST') {
+      try {
+        return await handleCopilotKitRequest(req)
+      } catch (err) {
+        console.error('[copilotkit] runtime error', err)
+        return json({ error: String(err) }, 500, req)
+      }
+    }
+
+    if (url.pathname === '/api/interpret-drawing' && req.method === 'POST') {
+      if (!searchRateOk(clientIp(req))) {
+        return json({ error: 'rate limit exceeded' }, 429, req)
+      }
+      let body: { imageBase64?: string } = {}
+      try {
+        body = (await req.json()) as typeof body
+      } catch {
+        return json({ error: 'invalid JSON body' }, 400, req)
+      }
+      if (!body.imageBase64) {
+        return json({ error: 'imageBase64 required' }, 400, req)
+      }
+      try {
+        const interp = await interpretDrawing(body.imageBase64)
+        return json(interp, 200, req)
+      } catch (err) {
+        console.error('[interpret-drawing] failed', err)
+        return json({ error: String(err) }, 500, req)
+      }
+    }
+
+    if (url.pathname === '/api/generate-surface' && req.method === 'POST') {
+      if (!searchRateOk(clientIp(req))) {
+        return json({ error: 'rate limit exceeded' }, 429, req)
+      }
+      let body: { interpretation?: DrawingInterpretation } = {}
+      try {
+        body = (await req.json()) as typeof body
+      } catch {
+        return json({ error: 'invalid JSON body' }, 400, req)
+      }
+      if (!body.interpretation) {
+        return json({ error: 'interpretation required' }, 400, req)
+      }
+      try {
+        const surface = await generateSurface(body.interpretation)
+        return json(surface, 200, req)
+      } catch (err) {
+        console.error('[generate-surface] failed', err)
+        return json({ error: String(err) }, 500, req)
+      }
+    }
+
     // /api/search/<provider> — proxy for Brave / Tavily / Exa / SerpApi.
     // Keys live server-side; browser providers POST { query, max_results, ... }.
-    // Allow underscores so multi-word providers like `places_google`,
-    // `places_nearby`, `place_details` route correctly.
-    const searchMatch = url.pathname.match(/^\/api\/search\/([a-z_]+)$/)
+    const searchMatch = url.pathname.match(/^\/api\/search\/([a-z]+)$/)
     if (searchMatch && req.method === 'POST') {
       if (!searchRateOk(clientIp(req))) {
         return json({ error: 'rate limit exceeded' }, 429, req)
@@ -138,23 +198,6 @@ const server = Bun.serve({
       }
       const provider = searchMatch[1]
       const outcome = await handleSearchRequest(provider as string, body)
-      return json(outcome.body, outcome.status, req)
-    }
-
-    // /api/tts — synthesises a text turn into 16-bit PCM @ 24 kHz so the
-    // browser can play it back into the Live session as if it were mic
-    // input. Rate-limited via the same per-IP bucket as search.
-    if (url.pathname === '/api/tts' && req.method === 'POST') {
-      if (!searchRateOk(clientIp(req))) {
-        return json({ error: 'rate limit exceeded' }, 429, req)
-      }
-      let body: Record<string, unknown> = {}
-      try {
-        body = (await req.json()) as Record<string, unknown>
-      } catch {
-        return json({ error: 'invalid JSON body' }, 400, req)
-      }
-      const outcome = await handleTtsRequest(body)
       return json(outcome.body, outcome.status, req)
     }
 

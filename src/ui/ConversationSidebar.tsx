@@ -1,22 +1,10 @@
-import {
-  Layers,
-  Loader2,
-  MessageSquare,
-  Mic,
-  RefreshCw,
-  Search,
-  Send,
-  Sparkles,
-  X,
-} from 'lucide-react'
-import { type FormEvent, useEffect, useRef, useState } from 'react'
+import { Layers, MessageSquare, Mic, RefreshCw, Search, Send, Sparkles, X } from 'lucide-react'
+import { useEffect, useRef } from 'react'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Card } from '@/components/ui/card'
 import { ScrollArea } from '@/components/ui/scroll-area'
-import { Textarea } from '@/components/ui/textarea'
 import { useT } from '@/hooks/useT'
-import { getTextSubmitter } from '@/lib/textInputBridge'
 import { type ConversationEvent, type ConversationEventKind, useStore } from '@/store'
 
 const KIND_META: Record<
@@ -38,12 +26,10 @@ function formatTime(ts: number) {
   return new Date(ts).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
 }
 
-export function ConversationSidebar({ forceShow = false }: { forceShow?: boolean }) {
+export function ConversationSidebar() {
   const events = useStore((s) => s.events)
   const clearEvents = useStore((s) => s.clearEvents)
   const voiceActive = useStore((s) => s.voiceActive)
-  const inputMode = useStore((s) => s.inputMode)
-  const textPending = useStore((s) => s.textPending)
   const { t } = useT()
   const rootRef = useRef<HTMLDivElement>(null)
 
@@ -62,18 +48,15 @@ export function ConversationSidebar({ forceShow = false }: { forceShow?: boolean
     })
   }, [events.length])
 
-  const showTextInput = voiceActive && inputMode === 'text'
-
-  if (!forceShow && !voiceActive && events.length === 0) return null
+  if (!voiceActive && events.length === 0) return null
 
   return (
     <Card
       ref={rootRef}
       className="
-        pointer-events-auto fixed top-14 bottom-24 left-0 z-20 flex
-        w-[calc(100vw-2rem)] mx-4 overflow-hidden
+        pointer-events-auto fixed top-6 bottom-24 left-6 z-20 flex
+        w-[min(380px,32vw)] overflow-hidden
         flex-col gap-3 border-white/10 bg-background/85 p-4 backdrop-blur-md
-        md:top-6 md:left-6 md:mx-0 md:w-[min(380px,32vw)] md:bottom-24
       "
     >
       <div className="flex shrink-0 items-center justify-between">
@@ -97,53 +80,7 @@ export function ConversationSidebar({ forceShow = false }: { forceShow?: boolean
           ))}
         </div>
       </ScrollArea>
-      {showTextInput && <TextInputFooter pending={textPending} />}
     </Card>
-  )
-}
-
-function TextInputFooter({ pending }: { pending: boolean }) {
-  const { t } = useT()
-  const [draft, setDraft] = useState('')
-
-  const onSubmit = async (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    const text = draft.trim()
-    if (!text || pending) return
-    const submit = getTextSubmitter()
-    if (!submit) return
-    setDraft('')
-    try {
-      await submit(text)
-    } catch {
-      // Hook surfaces errors via useStore.error already.
-    }
-  }
-
-  return (
-    <form onSubmit={onSubmit} className="shrink-0 border-white/10 border-t pt-3">
-      <Textarea
-        value={draft}
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault()
-            ;(e.currentTarget.form as HTMLFormElement | null)?.requestSubmit()
-          }
-        }}
-        placeholder={t('sidebar.textPlaceholder')}
-        rows={2}
-        disabled={pending}
-        className="resize-none border-white/10 bg-white/[0.03] text-xs"
-      />
-      <div className="mt-2 flex items-center justify-between gap-2">
-        <span className="text-[10px] text-muted-foreground/70 italic">{t('sidebar.textHint')}</span>
-        <Button type="submit" size="sm" disabled={pending || !draft.trim()}>
-          {pending ? <Loader2 className="size-3 animate-spin" /> : <Send className="size-3" />}
-          {t('sidebar.textSend')}
-        </Button>
-      </div>
-    </form>
   )
 }
 

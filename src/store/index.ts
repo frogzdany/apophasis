@@ -10,20 +10,6 @@ const LITE_KEY = 'lucy:lite'
 const MIC_KEY = 'lucy:micId'
 const LANG_KEY = 'lucy:lang'
 const VOICE_KEY = 'lucy:voice'
-const INPUT_MODE_KEY = 'lucy:inputMode'
-
-export type InputMode = 'voice' | 'text'
-
-function readInitialInputMode(): InputMode {
-  if (typeof window === 'undefined') return 'voice'
-  try {
-    const stored = localStorage.getItem(INPUT_MODE_KEY)
-    if (stored === 'text' || stored === 'voice') return stored
-  } catch {
-    /* noop */
-  }
-  return 'voice'
-}
 
 function readInitialVoice(): VoiceName {
   if (typeof window === 'undefined') return 'Aoede'
@@ -159,16 +145,11 @@ export interface ConversationEvent {
 interface Store {
   phase: Phase
   micLevel: number
-  micMuted: boolean
   voiceActive: boolean
   lite: boolean
   language: Language
   voiceName: VoiceName
   selectedMicId: string
-  inputMode: InputMode
-  // True while a TTS round-trip is in flight. Drives the text-input button
-  // disabled state and a tiny spinner.
-  textPending: boolean
   inputTranscript: string
   outputTranscript: string
   // Tracks who emitted the most recent transcription delta.
@@ -182,23 +163,39 @@ interface Store {
   // True between Lucy's tool call and the surface mounting in the renderer.
   surfacePending: boolean
   events: ConversationEvent[]
+  // Drawing canvas + interpretation state.
+  drawingOpen: boolean
+  drawingPrompt: string | null
+  drawingInterpretation: {
+    description: string
+    domain: string
+    searchQuery: string
+    title: string
+    attributes: Record<string, string | number>
+  } | null
   // Latest music search results — drives the ResultGallery.
   lastSearchResults: SearchResult[] | null
   lastSearchQuery: string | null
   searchPending: boolean
 
+  setDrawingOpen(open: boolean, prompt?: string): void
+  setDrawingInterpretation(
+    interp: {
+      description: string
+      domain: string
+      searchQuery: string
+      title: string
+      attributes: Record<string, string | number>
+    } | null,
+  ): void
   setPhase(phase: Phase): void
   setMicLevel(level: number): void
-  setMicMuted(muted: boolean): void
   setVoiceActive(active: boolean): void
   toggleLite(): void
   setLanguage(lang: Language): void
   toggleLanguage(): void
   setVoiceName(name: VoiceName): void
   setSelectedMicId(id: string): void
-  setInputMode(mode: InputMode): void
-  toggleInputMode(): void
-  setTextPending(pending: boolean): void
   appendInputTranscript(delta: string): void
   appendOutputTranscript(delta: string): void
   resetTranscripts(): void
@@ -219,8 +216,12 @@ interface Store {
 export const useStore = create<Store>((set, get) => ({
   phase: 'idle',
   micLevel: 0,
-  micMuted: false,
   voiceActive: false,
+  drawingOpen: false,
+  drawingPrompt: null,
+  drawingInterpretation: null,
+  setDrawingOpen: (open, prompt = null) => set({ drawingOpen: open, drawingPrompt: prompt ?? null }),
+  setDrawingInterpretation: (interp) => set({ drawingInterpretation: interp }),
   lite: readInitialLite(),
   toggleLite: () =>
     set((s) => {
@@ -275,30 +276,8 @@ export const useStore = create<Store>((set, get) => ({
     }
     set({ selectedMicId: id })
   },
-  inputMode: readInitialInputMode(),
-  textPending: false,
-  setInputMode: (mode) => {
-    try {
-      localStorage.setItem(INPUT_MODE_KEY, mode)
-    } catch {
-      /* noop */
-    }
-    set({ inputMode: mode })
-  },
-  toggleInputMode: () =>
-    set((s) => {
-      const next: InputMode = s.inputMode === 'voice' ? 'text' : 'voice'
-      try {
-        localStorage.setItem(INPUT_MODE_KEY, next)
-      } catch {
-        /* noop */
-      }
-      return { inputMode: next }
-    }),
-  setTextPending: (pending) => set({ textPending: pending }),
   setPhase: (phase) => set({ phase }),
   setMicLevel: (micLevel) => set({ micLevel }),
-  setMicMuted: (micMuted) => set({ micMuted }),
   setVoiceActive: (voiceActive) => set({ voiceActive }),
   inputTranscript: '',
   outputTranscript: '',

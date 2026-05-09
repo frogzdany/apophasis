@@ -66,14 +66,6 @@ body {
   margin: 0;
 }
 
-/* Disable 3D canvas pointer events on mobile so UI buttons work */
-@media (max-width: 767px) {
-  #root canvas {
-    pointer-events: none !important;
-  }
-}
-
-
 h1,
 h2 {
   font-family: var(--heading);

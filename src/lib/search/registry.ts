@@ -1,9 +1,6 @@
 import { booksProvider } from './providers/books'
 import { musicProvider } from './providers/music'
-import { placeDetailsProvider } from './providers/placeDetails'
 import { placesProvider } from './providers/places'
-import { placesGoogleProvider } from './providers/placesGoogle'
-import { placesNearbyProvider } from './providers/placesNearby'
 import { productsProvider } from './providers/products'
 import { webProvider } from './providers/web'
 import { youtubeProvider } from './providers/youtube'
@@ -21,9 +18,6 @@ export const SEARCH_PROVIDERS: SearchProvider[] = [
   youtubeProvider,
   booksProvider,
   placesProvider,
-  placesGoogleProvider,
-  placesNearbyProvider,
-  placeDetailsProvider,
   productsProvider,
   webProvider,
 ]
