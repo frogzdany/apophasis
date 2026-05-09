@@ -26,7 +26,7 @@ function formatTime(ts: number) {
   return new Date(ts).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' })
 }
 
-export function ConversationSidebar({ forceShow = false }: { forceShow?: boolean } = {}) {
+export function ConversationSidebar({ forceShow = false }: { forceShow?: boolean }) {
   const events = useStore((s) => s.events)
   const clearEvents = useStore((s) => s.clearEvents)
   const voiceActive = useStore((s) => s.voiceActive)
