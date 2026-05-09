@@ -1,0 +1,16 @@
+# Copy to terraform.tfvars and fill in.
+# terraform.tfvars is gitignored — never commit the API key.
+
+project_id = "your-personal-gcp-project-id"
+region     = "us-central1"
+
+# Set after the first image build & push (see infra/README.md).
+image = "us-central1-docker.pkg.dev/your-personal-gcp-project-id/lucy-blob/lucy-blob:0.1.0"
+
+# https://aistudio.google.com/apikey
+gemini_api_key = "AI..."
+
+# Budget alert wiring.
+billing_account    = "XXXXXX-XXXXXX-XXXXXX"   # gcloud beta billing accounts list
+notification_email = "you@example.com"
+budget_amount      = 10                       # USD/mo cap; alerts at 50/90/100% + 100% forecast
