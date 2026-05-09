@@ -607,7 +607,7 @@ async function placesSearch(args: {
       title: r.title ?? 'Untitled place',
       subtitle: r.address,
       description: [r.type, r.phone].filter(Boolean).join(' · '),
-      url: r.website,
+      url: buildMapsUrl({ title: r.title, address: r.address, placeId: r.place_id }),
       imageUrl: r.thumbnail,
       facets,
       reason: 'Google Maps',
@@ -970,10 +970,28 @@ function adaptGooglePlace(p: GooglePlace, idx: number): NormalisedResult {
     title: p.displayName?.text ?? 'Untitled place',
     subtitle: p.formattedAddress,
     description: primaryType,
-    url: p.websiteUri ?? p.googleMapsUri,
+    url:
+      p.googleMapsUri ??
+      buildMapsUrl({ title: p.displayName?.text, address: p.formattedAddress, placeId: p.id }),
     facets,
     reason: 'Google Places',
   }
+}
+
+// Build a stable Google Maps URL for a place. The `place_id`-keyed search
+// URL resolves to the canonical pin even when the title/address is slightly
+// off; the title+address fallback handles providers that omit place_id.
+function buildMapsUrl(args: {
+  title?: string
+  address?: string
+  placeId?: string
+}): string | undefined {
+  const query = [args.title, args.address].filter(Boolean).join(' ').trim()
+  if (!query && !args.placeId) return undefined
+  const params = new URLSearchParams({ api: '1' })
+  if (query) params.set('query', query)
+  if (args.placeId) params.set('query_place_id', args.placeId)
+  return `https://www.google.com/maps/search/?${params.toString()}`
 }
 
 async function placesGoogleSearch(args: {
