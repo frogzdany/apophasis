@@ -8,14 +8,19 @@ Registry.
                               Cloud Run service (lucy-blob)
    *.a.run.app  ─►  ┌────────────────────────────────────────┐
                     │  Bun container                          │
-                    │   ├─ /             → dist/ (SPA)        │
-                    │   ├─ /api/log      → GCS bucket         │
-                    │   ├─ /api/health   → store description  │
-                    │   └─ /api/gemini-token → ephemeral token│
+                    │   ├─ /                  → dist/ (SPA)   │
+                    │   ├─ /api/log           → GCS bucket    │
+                    │   ├─ /api/health        → store info    │
+                    │   ├─ /api/gemini-token  → ephem. token  │
+                    │   └─ /api/search/<x>    → upstream API  │
                     └────────────────────────────────────────┘
                                     │
-                          Secret Manager (GEMINI_API_KEY)
-                          GCS bucket   (session logs)
+                          Secret Manager:
+                            GEMINI_API_KEY
+                            BRAVE_API_KEY, TAVILY_API_KEY, EXA_API_KEY,
+                            SERPAPI_KEY, GOOGLE_BOOKS_API_KEY,
+                            GOOGLE_PLACES_API_KEY, YOUTUBE_API_KEY
+                          GCS bucket  (session logs)
 ```
 
 ## One-time setup
@@ -46,7 +51,13 @@ gcloud services enable run.googleapis.com artifactregistry.googleapis.com \
 ```bash
 # 1. Configure Terraform inputs.
 cp infra/terraform.tfvars.example infra/terraform.tfvars
-$EDITOR infra/terraform.tfvars   # set project_id and gemini_api_key
+$EDITOR infra/terraform.tfvars   # set project_id, gemini_api_key, and any
+                                 # of the optional search-provider keys
+                                 # (brave / tavily / exa / serpapi /
+                                 # google_books / google_places / youtube).
+                                 # Empty values are accepted; the
+                                 # corresponding /api/search/<x> route
+                                 # then returns "<X>_KEY not configured".
 
 # 2. First-pass apply WITHOUT a real image: provisions Artifact Registry,
 #    bucket, secret, SA. Use a placeholder image; we'll re-apply with the

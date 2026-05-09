@@ -6,11 +6,13 @@ import { callProxy, type ProxyResult } from './proxyClient'
 const declaration: FunctionDeclaration = {
   name: 'search_products',
   description:
-    'Search for products via Google Shopping (proxied through SerpApi). ' +
-    'Use whenever the user is trying to buy / shop / find a specific item ' +
-    'with a price tag. Returns title, store, price, rating, link and image. ' +
-    'Free-text query — natural language works ("waterproof hiking boots ' +
-    'under 200" is fine).',
+    'Search for product images via Brave Image Search. Use whenever the ' +
+    'user is exploring or shopping for a specific item visually — the ' +
+    'gallery feeds the morph animation, so what matters is clean photos, ' +
+    'not prices. Returns image, source page link, host, and dimensions; ' +
+    'price / store / rating are NOT available — never promise those. Free-' +
+    'text query works ("waterproof hiking boots", "rolex submariner", ' +
+    '"art-deco floor lamp").',
   parameters: {
     type: Type.OBJECT,
     properties: {
@@ -19,8 +21,18 @@ const declaration: FunctionDeclaration = {
         description: 'Product keyword(s) or natural-language description.',
       },
       max_results: { type: Type.NUMBER },
-      hl: { type: Type.STRING, description: 'UI language code, e.g. "en", "es".' },
-      gl: { type: Type.STRING, description: 'Country code, e.g. "us", "mx".' },
+      hl: {
+        type: Type.STRING,
+        description:
+          'Search language code, e.g. "en", "es". Defaults to "es" when ' +
+          'Lucy is speaking Spanish so LATAM-leaning images surface.',
+      },
+      gl: {
+        type: Type.STRING,
+        description:
+          'Country code, e.g. "us", "mx". When omitted, defaults to MX ' +
+          'for hl=es and US otherwise.',
+      },
     },
     required: ['query'],
   },

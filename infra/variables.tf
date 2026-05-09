@@ -40,6 +40,61 @@ variable "gemini_live_model" {
   default     = "gemini-3.1-flash-live-preview"
 }
 
+# ─── Search-provider secrets ─────────────────────────────────────────────
+# Each one becomes a Secret Manager secret + a Cloud Run env var. Secrets
+# are sensitive=true so plan output won't leak the value, and they can be
+# left empty (""): when an upstream key is missing the proxy returns a
+# clean error rather than crashing.
+
+variable "brave_api_key" {
+  description = "Brave Search API key. Powers /api/search/web (fan-out arm) and /api/search/products (image search)."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "tavily_api_key" {
+  description = "Tavily Search API key. Powers /api/search/web (fan-out arm with synthesised answer)."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "exa_api_key" {
+  description = "Exa neural-search API key. Powers /api/search/web (semantic fan-out arm)."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "serpapi_key" {
+  description = "SerpApi key. Powers /api/search/places and the books fallback."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "google_books_api_key" {
+  description = "Google Books API v1 key (Cloud project with Books API enabled). Primary backend for /api/search/books."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "google_places_api_key" {
+  description = "Google Places API (New) key. Powers /api/search/places_google, /places_nearby, /place_details."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
+variable "youtube_api_key" {
+  description = "YouTube Data API v3 key. Powers /api/search/video. Server-side only (used to live in the browser bundle)."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
 variable "logs_prefix" {
   description = "Object prefix inside the logs bucket."
   type        = string

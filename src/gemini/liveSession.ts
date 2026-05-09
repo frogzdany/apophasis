@@ -67,17 +67,37 @@ search — even on the first turn; you do NOT need a surface or a submit):
     performances, anything on YouTube. The "query" should read like a
     YouTube search box.
   - search_books({ query, max_results?, hl? })
-    Google Books (via SerpApi). Use for books, novels, essays, textbooks,
-    or a specific author. "query" can be a title snippet, an author, an
-    ISBN, or a topic. Set hl to "es" for Spanish-leaning results.
+    Google Books API (server transparently falls back to SerpApi on
+    error). Use for books, novels, essays, textbooks, or a specific
+    author. "query" can be a title snippet, an author, an ISBN, or a
+    topic. Set hl to "es" for Spanish-leaning results.
   - search_places({ query, location?, max_results?, hl? })
     Google Maps (via SerpApi). Use for restaurants, businesses, landmarks,
     "best X in Y", "where can I…". Pass "location" as free text whenever
     the user mentioned a city or area — it sharpens the result set.
+  - search_places_google({ query, location?, max_results?, hl? })
+    Google Places API (New) — same Google Maps data as search_places but
+    fetched directly from Google. Prefer this when freshness matters or
+    when you intend to follow up with place_details (the returned
+    place_id plugs straight in). Either tool is acceptable; pick one
+    per turn — don't double-call.
+  - search_places_nearby({ lat, lng, radius_m?, included_types?, max_results?, hl? })
+    Google Places API (New) Nearby Search. Use ONLY when you have an
+    explicit lat/lng (from a previous result, or because the user gave
+    them). For free-text "places near X" without coordinates, use
+    search_places_google with location instead. Default radius 1500 m.
+  - place_details({ place_id, hl? })
+    Google Places API (New) Place Details. Call this AFTER a places hit,
+    when the user asks "open now?", "phone", "address", "menu", or
+    "more info" about a specific result. Pass the place_id from that
+    earlier result.
   - search_products({ query, max_results?, hl?, gl? })
-    Google Shopping (via SerpApi). Use whenever the user is shopping for
-    or pricing a specific item. Returns real prices, stores, ratings.
-    Natural-language queries are fine ("waterproof hiking boots under 200").
+    Brave Image Search. Use whenever the user is exploring or shopping
+    for a specific item — the gallery feeds the morph animation, so this
+    returns CLEAN PRODUCT PHOTOS, not prices. Each result is an image
+    with a source-page link. Do NOT promise prices, stores, or ratings;
+    those are not available here. Natural-language queries work
+    ("waterproof hiking boots", "rolex submariner", "art-deco floor lamp").
   - search_web({ query, max_results? })
     Generic web search. Fans out across Brave (independent index), Tavily
     (LLM-curated with a synthesised answer) and Exa (semantic / neural)
@@ -90,8 +110,13 @@ Routing rules:
       Songs / albums / artists → search_music.
       Videos / music videos / lectures / tutorials → search_video.
       Books / authors / ISBN → search_books.
-      Restaurants / shops / landmarks / "places near…" → search_places.
-      Things to buy / prices / brands → search_products.
+      Restaurants / shops / landmarks / "places near…" → search_places
+      OR search_places_google (either is fine; the latter is preferred
+      when you'll follow up with place_details). Use
+      search_places_nearby ONLY with explicit lat/lng. Use place_details
+      after a places hit when the user asks for hours, phone, or more.
+      Things to buy / objects / brands the user wants to *see* →
+      search_products (returns images for the morph; not prices).
       Everything else (people, concepts, news, articles, "what is X") →
       search_web.
   • If the domain is genuinely ambiguous after the user's first sentence
@@ -258,20 +283,39 @@ incluso en el primer turno; NO necesitas panel ni envío):
     escenas, performances — todo lo que vive en YouTube. "query" debe leerse
     como una búsqueda en YouTube.
   - search_books({ query, max_results?, hl? })
-    Google Books (vía SerpApi). Para libros, novelas, ensayos, textos,
-    autores específicos. "query" puede ser un fragmento del título, un
-    autor, un ISBN o un tema. Pasa hl="es" para sesgar resultados al
-    español.
+    Google Books API (el servidor cae a SerpApi como fallback si Google
+    Books falla). Para libros, novelas, ensayos, textos, autores
+    específicos. "query" puede ser un fragmento del título, un autor, un
+    ISBN o un tema. Pasa hl="es" para sesgar resultados al español.
   - search_places({ query, location?, max_results?, hl? })
     Google Maps (vía SerpApi). Para restaurantes, negocios, lugares,
     "el mejor X en Y", "dónde puedo…". Pasa "location" como texto libre
     cuando el usuario haya mencionado una ciudad o zona — afina mucho los
     resultados.
+  - search_places_google({ query, location?, max_results?, hl? })
+    Google Places API (New) — los mismos datos de Google Maps que
+    search_places pero pedidos directo a Google. Prefiérelo cuando
+    importe la frescura o cuando vayas a encadenar place_details (el
+    place_id que devuelve sirve directo). Cualquiera de los dos sirve;
+    elige uno por turno — no llames ambos.
+  - search_places_nearby({ lat, lng, radius_m?, included_types?, max_results?, hl? })
+    Google Places API (New) Nearby Search. Úsalo SOLO cuando tengas
+    lat/lng explícitos (de un resultado previo o porque el usuario los
+    dio). Para "lugares cerca de X" sin coordenadas, usa
+    search_places_google con location. Radio por defecto: 1500 m.
+  - place_details({ place_id, hl? })
+    Google Places API (New) Place Details. Llámalo DESPUÉS de un hit
+    de lugar, cuando el usuario pregunte "¿está abierto?", "teléfono",
+    "dirección", "menú" o "más info" sobre un resultado específico.
+    Pasa el place_id de ese resultado.
   - search_products({ query, max_results?, hl?, gl? })
-    Google Shopping (vía SerpApi). Cuando el usuario quiere comprar o
-    consultar precio de un objeto específico. Devuelve precios reales,
-    tiendas, ratings. Acepta lenguaje natural ("botas impermeables para
-    montaña por menos de 200").
+    Brave Image Search. Úsalo cuando el usuario está explorando o
+    comprando un objeto específico — la galería alimenta la animación
+    de morph, así que esto devuelve FOTOS DE PRODUCTOS limpias, NO
+    precios. Cada resultado es una imagen con un enlace a la página de
+    origen. NUNCA prometas precios, tiendas ni ratings; aquí no están
+    disponibles. Acepta lenguaje natural ("botas impermeables para
+    montaña", "rolex submariner", "lámpara de pie art-decó").
   - search_web({ query, max_results? })
     Búsqueda web genérica. Fan-out paralelo a Brave (índice independiente),
     Tavily (resumen curado por LLM) y Exa (semántica / neural). Es el
@@ -284,8 +328,13 @@ Reglas de ruteo:
       Canciones / álbumes / artistas → search_music.
       Videos / videoclips / conferencias / tutoriales → search_video.
       Libros / autores / ISBN → search_books.
-      Restaurantes / tiendas / lugares / "cerca de…" → search_places.
-      Productos / precios / marcas → search_products.
+      Restaurantes / tiendas / lugares / "cerca de…" → search_places
+      O search_places_google (cualquiera sirve; prefiere el segundo si
+      vas a encadenar place_details). Usa search_places_nearby SOLO
+      con lat/lng explícitos. Usa place_details después de un hit de
+      lugar cuando pregunten por horarios, teléfono o más detalles.
+      Cosas que comprar / objetos / marcas que el usuario quiere *ver* →
+      search_products (devuelve imágenes para el morph; no precios).
       Cualquier otra cosa (personas, conceptos, noticias, artículos,
       "qué es X", "quién es Y") → search_web.
   • Si el dominio es realmente ambiguo en la primera frase del usuario

@@ -1,23 +1,7 @@
 import { type FunctionDeclaration, Type } from '@google/genai'
 import { logEvent } from '../../sessionLogger'
 import type { SearchProvider, SearchResult } from '../types'
-
-const ENDPOINT = 'https://www.googleapis.com/youtube/v3/search'
-
-interface YTSearchItem {
-  id?: { videoId?: string; channelId?: string; playlistId?: string }
-  snippet?: {
-    title?: string
-    description?: string
-    channelTitle?: string
-    publishedAt?: string
-    thumbnails?: {
-      default?: { url?: string }
-      medium?: { url?: string }
-      high?: { url?: string }
-    }
-  }
-}
+import { callProxy, type ProxyResult } from './proxyClient'
 
 const declaration: FunctionDeclaration = {
   name: 'search_video',
@@ -42,25 +26,23 @@ const declaration: FunctionDeclaration = {
   },
 }
 
-function adapt(item: YTSearchItem): SearchResult | null {
-  const id = item.id?.videoId
-  if (!id) return null
-  const sn = item.snippet ?? {}
-  const thumb =
-    sn.thumbnails?.medium?.url ?? sn.thumbnails?.high?.url ?? sn.thumbnails?.default?.url
+function adapt(r: ProxyResult): SearchResult {
+  // The server already produces a watch URL; pull the videoId off the
+  // facets map so the embed iframe can be reconstructed without parsing.
+  const videoId = (r.facets?.videoId as string | undefined) ?? r.id.replace(/^video:/, '')
   return {
-    id,
+    id: r.id,
     kind: 'video',
-    title: sn.title ?? 'Untitled video',
-    subtitle: sn.channelTitle,
-    description: sn.description,
-    imageUrl: thumb,
-    externalUrl: `https://www.youtube.com/watch?v=${id}`,
-    preview: { kind: 'iframe', url: `https://www.youtube.com/embed/${id}` },
-    facets: {
-      ...(sn.publishedAt ? { published: sn.publishedAt.slice(0, 10) } : {}),
-    },
-    reason: 'matches title/description',
+    title: r.title,
+    subtitle: r.subtitle,
+    description: r.description,
+    imageUrl: r.imageUrl,
+    externalUrl: r.url,
+    preview: videoId
+      ? { kind: 'iframe', url: `https://www.youtube.com/embed/${videoId}` }
+      : undefined,
+    facets: r.facets ?? {},
+    reason: r.reason,
   }
 }
 
@@ -69,46 +51,15 @@ export const youtubeProvider: SearchProvider = {
   kind: 'video',
   declaration,
   async handler(args, limit = 5) {
-    const startedAt = performance.now()
-    const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY as string | undefined
-    if (!apiKey) {
-      logEvent('searchVideo.error', { reason: 'missing VITE_YOUTUBE_API_KEY' })
-      return []
-    }
     const query = String((args.query as string | undefined) ?? '').trim()
     if (!query) {
-      logEvent('searchVideo.empty', { reason: 'no query' })
+      logEvent('search.video.empty', { reason: 'no query' })
       return []
     }
     const max = Math.max(1, Math.min(Number(args.max_results) || limit, 10))
-    const url = new URL(ENDPOINT)
-    url.searchParams.set('part', 'snippet')
-    url.searchParams.set('type', 'video')
-    url.searchParams.set('maxResults', String(max))
-    url.searchParams.set('q', query)
-    url.searchParams.set('key', apiKey)
-    logEvent('searchVideo.request', { query, max })
+    logEvent('search.video.request', { query, max })
 
-    try {
-      const res = await fetch(url.toString())
-      if (!res.ok) {
-        const body = await res.text().catch(() => '')
-        logEvent('searchVideo.error', { status: res.status, body: body.slice(0, 400) })
-        return []
-      }
-      const payload = (await res.json()) as { items?: YTSearchItem[] }
-      const results = (payload.items ?? []).map(adapt).filter((r): r is SearchResult => r !== null)
-      logEvent('searchVideo.response', {
-        query,
-        elapsedMs: Math.round(performance.now() - startedAt),
-        rawCount: payload.items?.length ?? 0,
-        returnedCount: results.length,
-        top: results.slice(0, 3).map((r) => ({ title: r.title, subtitle: r.subtitle })),
-      })
-      return results
-    } catch (e) {
-      logEvent('searchVideo.error', { error: String(e), query })
-      return []
-    }
+    const payload = await callProxy('video', { query, max_results: max })
+    return payload.results.map(adapt)
   },
 }

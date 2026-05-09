@@ -23,3 +23,8 @@ dist-ssr
 *.sln
 *.sw?
 .env
+
+# Per-developer Claude Code config (settings, MCP credentials, etc.).
+# Lives outside the shared repo so each contributor's local agent setup
+# stays private.
+.claude/

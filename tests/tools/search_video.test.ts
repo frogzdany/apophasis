@@ -9,11 +9,21 @@ import {
   expectShortDescription,
 } from '../helpers/expects'
 
-// YouTube Data API v3 — browser-direct, key ships via VITE_YOUTUBE_API_KEY.
-// In Node, that env var is read via `import.meta.env`, so we copy it from
-// process.env if needed.
+// YouTube Data API v3 — keyed server-side under YOUTUBE_API_KEY (the
+// browser used to ship the key in the bundle as VITE_YOUTUBE_API_KEY,
+// but it now goes through /api/search/video).
 const TOOL = 'search_video'
-const YT_KEY = 'VITE_YOUTUBE_API_KEY'
+
+function skipReason(): string | false {
+  if (!process.env.LUCY_TEST_PROXY_URL) return 'proxy not running'
+  // Tolerate the legacy VITE_-prefixed name during the migration window
+  // — the spawned proxy reads YOUTUBE_API_KEY, so we promote it here so
+  // a single .env.local entry keeps the test alive either way.
+  if (!process.env.YOUTUBE_API_KEY && process.env.VITE_YOUTUBE_API_KEY) {
+    process.env.YOUTUBE_API_KEY = process.env.VITE_YOUTUBE_API_KEY
+  }
+  return skipMissing('YOUTUBE_API_KEY')
+}
 
 describe(TOOL, () => {
   it('is registered with the right name', () => {
@@ -23,7 +33,7 @@ describe(TOOL, () => {
     expect(youtubeProvider.kind).toBe('video')
   })
 
-  const skip = skipMissing(YT_KEY)
+  const skip = skipReason()
 
   it.skipIf(skip)('returns schema-valid results for a known query', async () => {
     const results = await youtubeProvider.handler({ query: 'AlphaGo documentary trailer' }, 5)

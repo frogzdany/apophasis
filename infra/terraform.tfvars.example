@@ -10,6 +10,31 @@ image = "us-central1-docker.pkg.dev/your-personal-gcp-project-id/lucy-blob/lucy-
 # https://aistudio.google.com/apikey
 gemini_api_key = "AI..."
 
+# === Search-provider keys (optional, default "") ===
+# Each becomes a Secret Manager secret + a Cloud Run env var. Leave any
+# of them empty and the corresponding /api/search/<route> returns a
+# clean "<X>_KEY not configured" error instead of crashing.
+
+# Brave Search API — https://api.search.brave.com/app/keys
+brave_api_key = ""
+# Tavily Search API — https://app.tavily.com/home
+tavily_api_key = ""
+# Exa neural search — https://dashboard.exa.ai/api-keys
+exa_api_key = ""
+# SerpApi (Google Maps + books fallback) — https://serpapi.com/manage-api-key
+serpapi_key = ""
+# Google Books API v1 — Google Cloud project with the Books API enabled.
+# https://console.cloud.google.com/apis/library/books.googleapis.com
+google_books_api_key = ""
+# Google Places API (New) — Google Cloud project with the Places API
+# (New) enabled.
+# https://console.cloud.google.com/apis/library/places.googleapis.com
+google_places_api_key = ""
+# YouTube Data API v3 — Google Cloud project with the YouTube Data API
+# enabled. Server-side only (used to live in the browser bundle).
+# https://console.cloud.google.com/apis/library/youtube.googleapis.com
+youtube_api_key = ""
+
 # Budget alert wiring.
 billing_account    = "XXXXXX-XXXXXX-XXXXXX"   # gcloud beta billing accounts list
 notification_email = "you@example.com"

@@ -123,7 +123,9 @@ const server = Bun.serve({
 
     // /api/search/<provider> — proxy for Brave / Tavily / Exa / SerpApi.
     // Keys live server-side; browser providers POST { query, max_results, ... }.
-    const searchMatch = url.pathname.match(/^\/api\/search\/([a-z]+)$/)
+    // Allow underscores so multi-word providers like `places_google`,
+    // `places_nearby`, `place_details` route correctly.
+    const searchMatch = url.pathname.match(/^\/api\/search\/([a-z_]+)$/)
     if (searchMatch && req.method === 'POST') {
       if (!searchRateOk(clientIp(req))) {
         return json({ error: 'rate limit exceeded' }, 429, req)
