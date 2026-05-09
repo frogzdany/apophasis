@@ -145,6 +145,7 @@ export interface ConversationEvent {
 interface Store {
   phase: Phase
   micLevel: number
+  micMuted: boolean
   voiceActive: boolean
   lite: boolean
   language: Language
@@ -170,6 +171,7 @@ interface Store {
 
   setPhase(phase: Phase): void
   setMicLevel(level: number): void
+  setMicMuted(muted: boolean): void
   setVoiceActive(active: boolean): void
   toggleLite(): void
   setLanguage(lang: Language): void
@@ -196,6 +198,7 @@ interface Store {
 export const useStore = create<Store>((set, get) => ({
   phase: 'idle',
   micLevel: 0,
+  micMuted: false,
   voiceActive: false,
   lite: readInitialLite(),
   toggleLite: () =>
@@ -253,6 +256,7 @@ export const useStore = create<Store>((set, get) => ({
   },
   setPhase: (phase) => set({ phase }),
   setMicLevel: (micLevel) => set({ micLevel }),
+  setMicMuted: (micMuted) => set({ micMuted }),
   setVoiceActive: (voiceActive) => set({ voiceActive }),
   inputTranscript: '',
   outputTranscript: '',
