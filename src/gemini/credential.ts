@@ -24,6 +24,10 @@ interface MintedTokenResponse {
 export interface CredentialOptions {
   voice?: string
   language?: string
+  // When the user has shared their browser geolocation (and optionally a
+  // reverse-geocoded label), we forward it to the token mint so Lucy's
+  // baked-in system instruction includes the proximity-routing block.
+  userLocation?: { lat: number; lng: number; label?: string; accuracy?: number } | null
 }
 
 export async function getLiveCredential(opts: CredentialOptions = {}): Promise<string> {

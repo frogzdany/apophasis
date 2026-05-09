@@ -33,6 +33,20 @@ const MESSAGES: Record<Language, Record<string, string>> = {
     'controls.test': 'Test',
     'controls.testTooltip': 'Render a sample A2UI surface (no LLM)',
     'controls.error.missingKey': 'Missing VITE_GEMINI_API_KEY in .env.local',
+    'location.share': 'Share location',
+    'location.requesting': 'Locating…',
+    'location.granted': 'Location on',
+    'location.denied': 'Permission denied',
+    'location.unavailable': 'Location unavailable',
+    'location.timeout': 'Location timed out',
+    'location.unsupported': 'Location not supported',
+    'location.tooltip':
+      'Share your browser location so Lucy can prefer "near me" results from Google Places. Stays in this tab — never persisted.',
+    'location.infoTitle': 'How location is used',
+    'location.infoBody':
+      "When you share your location, Lucy receives the coordinates only for this session. They're used to bias place searches toward where you are. Coordinates are not stored anywhere; close the tab and they're gone.",
+    'location.clear': 'Clear location',
+    'location.retry': 'Try again',
     'preset.basic': 'Basic form',
     'preset.music': 'Music search',
     'preset.gallery': 'All primitives',
@@ -87,20 +101,27 @@ const MESSAGES: Record<Language, Record<string, string>> = {
     'app.title': 'Apophasis',
     'app.tagline': 'Reverse search via generative UI',
 
-    'tour.welcome': 'Welcome to Apophasis — a reverse search engine for things you can\'t quite describe.',
+    'tour.welcome':
+      "Welcome to Apophasis — a reverse search engine for things you can't quite describe.",
     'tour.welcome.q1': '"That song that goes da da da dum… it was in a movie…"',
     'tour.welcome.q2': '"A book about a guy stuck on Mars, I think it was funny"',
     'tour.welcome.q3': '"A restaurant with the blue sign near the park, they had amazing tacos"',
-    'tour.welcome.cta': 'Talk to Lucy, describe what you\'re looking for in your own words, and she\'ll take care of the rest.',
-    'tour.howItWorks': 'When you talk, Lucy will create interactive panels to refine your search and results will appear in a gallery. Music, videos, books, places and more.',
-    'tour.lucy': 'This is Lucy, your AI voice agent. The blob changes shape based on what Lucy is doing: listening, thinking or showing results.',
+    'tour.welcome.cta':
+      "Talk to Lucy, describe what you're looking for in your own words, and she'll take care of the rest.",
+    'tour.howItWorks':
+      'When you talk, Lucy will create interactive panels to refine your search and results will appear in a gallery. Music, videos, books, places and more.',
+    'tour.lucy':
+      'This is Lucy, your AI voice agent. The blob changes shape based on what Lucy is doing: listening, thinking or showing results.',
     'tour.controls': 'This is your control bar. Everything you need to interact with Lucy is here.',
-    'tour.talkButton': 'Tap this button and start describing what you\'re looking for. A song you half-remember, a place from a story, a product you saw once — just speak naturally.',
+    'tour.talkButton':
+      "Tap this button and start describing what you're looking for. A song you half-remember, a place from a story, a product you saw once — just speak naturally.",
     'tour.voiceSelector': 'Choose the voice Lucy uses when she responds.',
     'tour.micSelector': 'Select which microphone to use if you have more than one.',
     'tour.langToggle': 'Switch between English and Spanish — Lucy speaks both.',
-    'tour.liteToggle': 'Turn on lite mode to reduce visual effects on slower devices. You can also press L on your keyboard.',
-    'tour.closing': 'That\'s it! Try describing something you vaguely remember — a song, a place, a book — and let Lucy find it for you.',
+    'tour.liteToggle':
+      'Turn on lite mode to reduce visual effects on slower devices. You can also press L on your keyboard.',
+    'tour.closing':
+      "That's it! Try describing something you vaguely remember — a song, a place, a book — and let Lucy find it for you.",
 
     'tour.btn.back': 'Back',
     'tour.btn.close': 'Close',
@@ -132,6 +153,20 @@ const MESSAGES: Record<Language, Record<string, string>> = {
     'controls.test': 'Test',
     'controls.testTooltip': 'Renderiza un panel A2UI de prueba (sin LLM)',
     'controls.error.missingKey': 'Falta VITE_GEMINI_API_KEY en .env.local',
+    'location.share': 'Compartir ubicación',
+    'location.requesting': 'Localizando…',
+    'location.granted': 'Ubicación activa',
+    'location.denied': 'Permiso denegado',
+    'location.unavailable': 'Ubicación no disponible',
+    'location.timeout': 'Tiempo agotado',
+    'location.unsupported': 'No soportado',
+    'location.tooltip':
+      'Comparte tu ubicación del navegador para que Lucy priorice resultados "cerca de mí" de Google Places. Solo se usa en esta pestaña; nunca se guarda.',
+    'location.infoTitle': 'Cómo se usa tu ubicación',
+    'location.infoBody':
+      'Cuando compartes tu ubicación, Lucy recibe las coordenadas solo para esta sesión. Se usan para sesgar las búsquedas de lugares hacia donde estás. No se guardan en ningún lado; al cerrar la pestaña, desaparecen.',
+    'location.clear': 'Quitar ubicación',
+    'location.retry': 'Reintentar',
     'preset.basic': 'Formulario básico',
     'preset.music': 'Búsqueda de música',
     'preset.gallery': 'Todos los primitivos',
@@ -186,20 +221,29 @@ const MESSAGES: Record<Language, Record<string, string>> = {
     'app.title': 'Apophasis',
     'app.tagline': 'Búsqueda inversa con UI generativa',
 
-    'tour.welcome': 'Bienvenido a Apophasis — un buscador inverso para cosas que no sabes cómo describir.',
+    'tour.welcome':
+      'Bienvenido a Apophasis — un buscador inverso para cosas que no sabes cómo describir.',
     'tour.welcome.q1': '"Esa canción que va da da da dum… salía en una peli…"',
     'tour.welcome.q2': '"Un libro de un tipo atrapado en Marte, creo que era gracioso"',
-    'tour.welcome.q3': '"Un restaurante con el letrero azul cerca del parque, tenían unos tacos increíbles"',
-    'tour.welcome.cta': 'Habla con Lucy, descríbele lo que buscas con tus propias palabras, y ella se encarga del resto.',
-    'tour.howItWorks': 'Cuando hables, Lucy creará paneles interactivos para afinar tu búsqueda y los resultados aparecerán en una galería. Música, videos, libros, lugares y más.',
-    'tour.lucy': 'Esta es Lucy, tu agente de voz con IA. El blob cambia de forma según lo que Lucy hace: escuchar, pensar o mostrar resultados.',
-    'tour.controls': 'Esta es tu barra de control. Todo lo que necesitas para interactuar con Lucy está aquí.',
-    'tour.talkButton': 'Toca este botón y empieza a describir lo que buscas. Una canción que medio recuerdas, un lugar de una historia, un producto que viste una vez — solo habla naturalmente.',
+    'tour.welcome.q3':
+      '"Un restaurante con el letrero azul cerca del parque, tenían unos tacos increíbles"',
+    'tour.welcome.cta':
+      'Habla con Lucy, descríbele lo que buscas con tus propias palabras, y ella se encarga del resto.',
+    'tour.howItWorks':
+      'Cuando hables, Lucy creará paneles interactivos para afinar tu búsqueda y los resultados aparecerán en una galería. Música, videos, libros, lugares y más.',
+    'tour.lucy':
+      'Esta es Lucy, tu agente de voz con IA. El blob cambia de forma según lo que Lucy hace: escuchar, pensar o mostrar resultados.',
+    'tour.controls':
+      'Esta es tu barra de control. Todo lo que necesitas para interactuar con Lucy está aquí.',
+    'tour.talkButton':
+      'Toca este botón y empieza a describir lo que buscas. Una canción que medio recuerdas, un lugar de una historia, un producto que viste una vez — solo habla naturalmente.',
     'tour.voiceSelector': 'Elige la voz que usa Lucy cuando te responde.',
     'tour.micSelector': 'Selecciona qué micrófono usar si tienes más de uno.',
     'tour.langToggle': 'Cambia entre inglés y español — Lucy habla ambos idiomas.',
-    'tour.liteToggle': 'Activa el modo ligero para reducir efectos visuales en dispositivos lentos. También puedes presionar L en tu teclado.',
-    'tour.closing': '¡Eso es todo! Prueba a describir algo que recuerdes vagamente — una canción, un lugar, un libro — y deja que Lucy lo encuentre por ti.',
+    'tour.liteToggle':
+      'Activa el modo ligero para reducir efectos visuales en dispositivos lentos. También puedes presionar L en tu teclado.',
+    'tour.closing':
+      '¡Eso es todo! Prueba a describir algo que recuerdes vagamente — una canción, un lugar, un libro — y deja que Lucy lo encuentre por ti.',
 
     'tour.btn.back': 'Atrás',
     'tour.btn.close': 'Cerrar',

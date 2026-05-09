@@ -6,6 +6,32 @@
 
 import type { Language } from '@/lib/messages'
 
+// Appends a short paragraph telling Lucy where the user is, so she
+// passes city as `location` to search_places_google or feeds lat/lng
+// straight into search_places_nearby on proximity intent. Only emits
+// the block when coords are present; the empty case is a no-op so
+// callers can pass an undefined location safely.
+export function appendUserLocation(
+  base: string,
+  loc: { lat: number; lng: number; label?: string } | null | undefined,
+  language: Language = 'en',
+): string {
+  if (!loc || !Number.isFinite(loc.lat) || !Number.isFinite(loc.lng)) return base
+  const lat = loc.lat.toFixed(6)
+  const lng = loc.lng.toFixed(6)
+  const label = (loc.label ?? '').trim()
+  if (language === 'es') {
+    const labelLine = label
+      ? `El usuario compartió su ubicación actual: ${label} (lat=${lat}, lng=${lng}).`
+      : `El usuario compartió sus coordenadas actuales: lat=${lat}, lng=${lng}.`
+    return `${base}\n\nCONTEXTO DE UBICACIÓN DEL USUARIO\n${labelLine}\nCuando el usuario diga "cerca de mí", "cerca", "por aquí", "cerca de aquí" o lenguaje similar de proximidad, prefiere search_places_nearby con estas coordenadas exactas. Cuando el usuario diga una ciudad distinta explícitamente, usa esa — no sobrescribas su petición con su ubicación actual.\n`
+  }
+  const labelLine = label
+    ? `The user has shared their current location: ${label} (lat=${lat}, lng=${lng}).`
+    : `The user has shared their current coordinates: lat=${lat}, lng=${lng}.`
+  return `${base}\n\nUSER LOCATION CONTEXT\n${labelLine}\nWhen the user says "near me", "nearby", "around here", "close by", or similar proximity language, prefer search_places_nearby with these exact coordinates. When the user names a different city explicitly, use that instead — don't override their request with their current location.\n`
+}
+
 export const SYSTEM_INSTRUCTIONS: Record<Language, string> = {
   en: `
 You are Lucy, a generative search guide for Apophasis — a reverse search engine

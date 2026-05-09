@@ -16,6 +16,7 @@
 import { stat } from 'node:fs/promises'
 import { extname, join, normalize, resolve } from 'node:path'
 import { mintEphemeralToken } from './geminiToken'
+import { handleGeocodeReverse } from './geocodeProxy'
 import { appendLog, describeStore } from './logStore'
 import { cacheStats } from './searchCache'
 import { handleSearchRequest } from './searchProxy'
@@ -105,9 +106,15 @@ const server = Bun.serve({
         return json({ error: 'rate limit exceeded' }, 429, req)
       }
       try {
-        // Body is optional; clients send { voice, language } so the minted
-        // token's liveConnectConstraints lock to the right speechConfig.
-        let body: { voice?: string; language?: string } = {}
+        // Body is optional; clients send { voice, language, userLocation? }
+        // so the minted token's liveConnectConstraints lock to the right
+        // speechConfig and bake the proximity-routing block into Lucy's
+        // system instruction when geolocation has been shared.
+        let body: {
+          voice?: string
+          language?: string
+          userLocation?: unknown
+        } = {}
         try {
           body = (await req.json()) as typeof body
         } catch {
@@ -138,6 +145,24 @@ const server = Bun.serve({
       }
       const provider = searchMatch[1]
       const outcome = await handleSearchRequest(provider as string, body)
+      return json(outcome.body, outcome.status, req)
+    }
+
+    // /api/geocode/reverse — turns lat/lng from the browser geolocation API
+    // into a human-readable label ("Mexico City, CDMX, Mexico") plus the
+    // top match's place_id. Uses the same GOOGLE_PLACES_API_KEY as the
+    // Places routes; rides the same per-IP search rate bucket.
+    if (url.pathname === '/api/geocode/reverse' && req.method === 'POST') {
+      if (!searchRateOk(clientIp(req))) {
+        return json({ error: 'rate limit exceeded' }, 429, req)
+      }
+      let body: Record<string, unknown> = {}
+      try {
+        body = (await req.json()) as Record<string, unknown>
+      } catch {
+        return json({ error: 'invalid JSON body' }, 400, req)
+      }
+      const outcome = await handleGeocodeReverse(body)
       return json(outcome.body, outcome.status, req)
     }
 

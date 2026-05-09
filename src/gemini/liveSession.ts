@@ -1,10 +1,6 @@
-import {
-  type FunctionCall,
-  type FunctionResponse,
-  GoogleGenAI,
-  type Session,
-} from '@google/genai'
+import { type FunctionCall, type FunctionResponse, GoogleGenAI, type Session } from '@google/genai'
 import { arrayBufferToBase64, base64ToInt16 } from '@/audio/player'
+import type { UserLocation } from '@/lib/geolocation'
 import type { Language } from '@/lib/messages'
 import { logEvent } from '@/lib/sessionLogger'
 import { buildLiveConfig, LIVE_MODEL, VOICE_NAMES, type VoiceName } from './liveConfig'
@@ -41,12 +37,14 @@ export class LiveSession extends EventTarget {
   private session: Session | null = null
   private language: Language
   private voiceName: VoiceName
+  private userLocation: UserLocation | null
   connected = false
 
   constructor({
     apiKey,
     language,
     voiceName,
+    userLocation = null,
   }: {
     // Long-lived API key (dev / harness) OR a short-lived ephemeral token
     // name minted by the backend (prod). Both are passed via the SDK's
@@ -55,6 +53,7 @@ export class LiveSession extends EventTarget {
     apiKey: string
     language: Language
     voiceName: VoiceName
+    userLocation?: UserLocation | null
   }) {
     super()
     this.ai = new GoogleGenAI({
@@ -63,6 +62,7 @@ export class LiveSession extends EventTarget {
     } as ConstructorParameters<typeof GoogleGenAI>[0])
     this.language = language
     this.voiceName = voiceName
+    this.userLocation = userLocation
   }
 
   async connect(): Promise<void> {
@@ -78,6 +78,7 @@ export class LiveSession extends EventTarget {
       const liveConfig = buildLiveConfig({
         language: this.language,
         voiceName: this.voiceName,
+        userLocation: this.userLocation,
       }) as unknown as Parameters<typeof this.ai.live.connect>[0]['config']
 
       this.session = await this.ai.live.connect({
