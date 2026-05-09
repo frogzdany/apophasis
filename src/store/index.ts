@@ -10,6 +10,20 @@ const LITE_KEY = 'lucy:lite'
 const MIC_KEY = 'lucy:micId'
 const LANG_KEY = 'lucy:lang'
 const VOICE_KEY = 'lucy:voice'
+const INPUT_MODE_KEY = 'lucy:inputMode'
+
+export type InputMode = 'voice' | 'text'
+
+function readInitialInputMode(): InputMode {
+  if (typeof window === 'undefined') return 'voice'
+  try {
+    const stored = localStorage.getItem(INPUT_MODE_KEY)
+    if (stored === 'text' || stored === 'voice') return stored
+  } catch {
+    /* noop */
+  }
+  return 'voice'
+}
 
 function readInitialVoice(): VoiceName {
   if (typeof window === 'undefined') return 'Aoede'
@@ -150,6 +164,10 @@ interface Store {
   language: Language
   voiceName: VoiceName
   selectedMicId: string
+  inputMode: InputMode
+  // True while a TTS round-trip is in flight. Drives the text-input button
+  // disabled state and a tiny spinner.
+  textPending: boolean
   inputTranscript: string
   outputTranscript: string
   // Tracks who emitted the most recent transcription delta.
@@ -176,6 +194,9 @@ interface Store {
   toggleLanguage(): void
   setVoiceName(name: VoiceName): void
   setSelectedMicId(id: string): void
+  setInputMode(mode: InputMode): void
+  toggleInputMode(): void
+  setTextPending(pending: boolean): void
   appendInputTranscript(delta: string): void
   appendOutputTranscript(delta: string): void
   resetTranscripts(): void
@@ -251,6 +272,27 @@ export const useStore = create<Store>((set, get) => ({
     }
     set({ selectedMicId: id })
   },
+  inputMode: readInitialInputMode(),
+  textPending: false,
+  setInputMode: (mode) => {
+    try {
+      localStorage.setItem(INPUT_MODE_KEY, mode)
+    } catch {
+      /* noop */
+    }
+    set({ inputMode: mode })
+  },
+  toggleInputMode: () =>
+    set((s) => {
+      const next: InputMode = s.inputMode === 'voice' ? 'text' : 'voice'
+      try {
+        localStorage.setItem(INPUT_MODE_KEY, next)
+      } catch {
+        /* noop */
+      }
+      return { inputMode: next }
+    }),
+  setTextPending: (pending) => set({ textPending: pending }),
   setPhase: (phase) => set({ phase }),
   setMicLevel: (micLevel) => set({ micLevel }),
   setVoiceActive: (voiceActive) => set({ voiceActive }),

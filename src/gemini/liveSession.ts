@@ -161,6 +161,17 @@ export class LiveSession extends EventTarget {
     })
   }
 
+  // Marks the end of a synthesised audio turn so server VAD doesn't have to
+  // wait for trailing silence to detect end-of-speech. Used by the text
+  // demo path after the last TTS frame is pushed; the regular mic path
+  // doesn't call this — server VAD handles natural end-of-utterance there.
+  sendAudioStreamEnd(): void {
+    if (!this.session || !this.connected) return
+    this.session.sendRealtimeInput({ audioStreamEnd: true } as Parameters<
+      typeof this.session.sendRealtimeInput
+    >[0])
+  }
+
   sendToolResponse(responses: FunctionResponse[]): void {
     if (!this.session || !this.connected) return
     console.log('[lucy] sendToolResponse', responses)

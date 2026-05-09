@@ -1,4 +1,4 @@
-import { FlaskConical, Languages, Mic, MicOff, Sparkles, Zap } from 'lucide-react'
+import { FlaskConical, Keyboard, Languages, Mic, MicOff, Sparkles, Zap } from 'lucide-react'
 import { DEMO_LABELS, DEMO_PRESETS, type DemoPreset, dispatchDemoSurface } from '@/a2ui/demoSurface'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
@@ -18,6 +18,8 @@ export function Controls() {
   const toggleLite = useStore((s) => s.toggleLite)
   const language = useStore((s) => s.language)
   const toggleLanguage = useStore((s) => s.toggleLanguage)
+  const inputMode = useStore((s) => s.inputMode)
+  const toggleInputMode = useStore((s) => s.toggleInputMode)
   const registerSurface = useStore((s) => s.registerSurface)
   const { start, stop, error } = useVoiceSession()
   const { t } = useT()
@@ -38,6 +40,16 @@ export function Controls() {
         <Sparkles className="size-3" />
         {t('controls.next')}
       </Button>
+      <Button
+        variant={inputMode === 'text' ? 'secondary' : 'ghost'}
+        size="sm"
+        onClick={toggleInputMode}
+        title={t('controls.inputMode.tooltip')}
+        disabled={voiceActive}
+      >
+        {inputMode === 'text' ? <Keyboard className="size-3" /> : <Mic className="size-3" />}
+        {t(inputMode === 'text' ? 'controls.inputMode.text' : 'controls.inputMode.voice')}
+      </Button>
       {voiceActive ? (
         <Button variant="destructive" size="sm" onClick={stop}>
           <MicOff className="size-3" />
@@ -45,7 +57,7 @@ export function Controls() {
         </Button>
       ) : (
         <Button size="sm" onClick={start}>
-          <Mic className="size-3" />
+          {inputMode === 'text' ? <Keyboard className="size-3" /> : <Mic className="size-3" />}
           {t('controls.talk')}
         </Button>
       )}

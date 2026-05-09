@@ -4,6 +4,9 @@
 //   POST /api/log              — append a JSONL event to the session log store
 //   GET  /api/health           — liveness + log-backend description
 //   POST /api/gemini-token     — mint a short-lived Gemini Live ephemeral token
+//   POST /api/search/<x>       — proxy for upstream search providers
+//   POST /api/tts              — synthesise text → 16-bit PCM (drives the
+//                                text-input demo flow; replays into Live)
 //   *                          — when DIST_DIR is set, serve static SPA assets
 //                                with SPA fallback to index.html
 //
@@ -17,6 +20,7 @@ import { appendLog, describeStore } from './logStore'
 import { cacheStats } from './searchCache'
 import { handleSearchRequest } from './searchProxy'
 import { searchRateOk } from './searchRateLimit'
+import { handleTtsRequest } from './ttsProxy'
 
 interface LogEntry {
   sessionId: string
@@ -74,11 +78,7 @@ const server = Bun.serve({
     // ─── API ────────────────────────────────────────────────────────────
     if (url.pathname === '/api/health') {
       // Health stays open so Cloud Run probes and curl-from-shell work.
-      return json(
-        { ok: true, store: describeStore(), searchCache: cacheStats() },
-        200,
-        req,
-      )
+      return json({ ok: true, store: describeStore(), searchCache: cacheStats() }, 200, req)
     }
 
     // Everything else under /api/* is gated by Origin allowlist.
@@ -138,6 +138,23 @@ const server = Bun.serve({
       }
       const provider = searchMatch[1]
       const outcome = await handleSearchRequest(provider as string, body)
+      return json(outcome.body, outcome.status, req)
+    }
+
+    // /api/tts — synthesises a text turn into 16-bit PCM @ 24 kHz so the
+    // browser can play it back into the Live session as if it were mic
+    // input. Rate-limited via the same per-IP bucket as search.
+    if (url.pathname === '/api/tts' && req.method === 'POST') {
+      if (!searchRateOk(clientIp(req))) {
+        return json({ error: 'rate limit exceeded' }, 429, req)
+      }
+      let body: Record<string, unknown> = {}
+      try {
+        body = (await req.json()) as Record<string, unknown>
+      } catch {
+        return json({ error: 'invalid JSON body' }, 400, req)
+      }
+      const outcome = await handleTtsRequest(body)
       return json(outcome.body, outcome.status, req)
     }
 
