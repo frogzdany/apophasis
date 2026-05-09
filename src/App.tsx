@@ -1,7 +1,7 @@
-import { HelpCircle, Menu, X } from 'lucide-react'
 import { OrbitControls } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
 import { Bloom, ChromaticAberration, EffectComposer } from '@react-three/postprocessing'
+import { HelpCircle, Menu, X } from 'lucide-react'
 import { BlendFunction } from 'postprocessing'
 import { useEffect, useState } from 'react'
 import * as THREE from 'three'
@@ -12,6 +12,7 @@ import { Blob } from '@/scene/Blob'
 import { useStore } from '@/store'
 import { Controls } from '@/ui/Controls'
 import { ConversationSidebar } from '@/ui/ConversationSidebar'
+import { LocationToggle } from '@/ui/LocationToggle'
 import { ResultGallery } from '@/ui/ResultGallery'
 import { SurfacePanel } from '@/ui/SurfacePanel'
 import { Transcript } from '@/ui/Transcript'
@@ -102,6 +103,7 @@ export default function App() {
         <ConversationSidebar forceShow={sidebarOpen} />
       </div>
 
+      <LocationToggle />
       <ResultGallery />
       <SurfacePanel />
       <Controls />

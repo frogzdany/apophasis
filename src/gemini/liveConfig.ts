@@ -21,9 +21,10 @@
 // wire.
 
 import { FunctionCallingConfigMode, Modality } from '@google/genai'
+import type { UserLocation } from '@/lib/geolocation'
 import type { Language } from '@/lib/messages'
+import { appendUserLocation, SYSTEM_INSTRUCTIONS } from './systemInstructions'
 import { APOPHASIS_TOOLS } from './tools'
-import { SYSTEM_INSTRUCTIONS } from './systemInstructions'
 
 // Latin-American Spanish voice pairing. 'es-US' generally produces the
 // warmest LATAM-leaning output across Gemini's prebuilt voices.
@@ -55,19 +56,23 @@ export type VoiceName = (typeof VOICE_NAMES)[number]
 export interface LiveConfigOptions {
   language: Language
   voiceName: VoiceName
+  // Optional. When the user has shared their browser geolocation, the
+  // coords (and a reverse-geocoded label) are appended to Lucy's system
+  // instruction so she routes proximity intent through search_places_nearby.
+  userLocation?: UserLocation | null
 }
 
 // Builds the full Live config payload. Both sites cast through to the SDK
 // shape because the SDK's LiveConnectConfig type is missing toolConfig (the
 // server still accepts it) and authTokens' constraints are typed loosely.
-export function buildLiveConfig({ language, voiceName }: LiveConfigOptions) {
+export function buildLiveConfig({ language, voiceName, userLocation }: LiveConfigOptions) {
   const allowedFunctionNames = APOPHASIS_TOOLS.map((t) => t.name).filter(
     (n): n is string => typeof n === 'string',
   )
 
   return {
     responseModalities: [Modality.AUDIO],
-    systemInstruction: SYSTEM_INSTRUCTIONS[language],
+    systemInstruction: appendUserLocation(SYSTEM_INSTRUCTIONS[language], userLocation, language),
     inputAudioTranscription: {},
     outputAudioTranscription: {},
     tools: [{ functionDeclarations: APOPHASIS_TOOLS }],

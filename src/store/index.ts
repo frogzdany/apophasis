@@ -1,7 +1,22 @@
 import { create } from 'zustand'
 import { VOICE_NAMES, type VoiceName } from '@/gemini/liveSession'
+import type { UserLocation } from '@/lib/geolocation'
 import { LANGUAGES, type Language } from '@/lib/messages'
 import type { SearchResult } from '@/lib/search/types'
+
+// Lifecycle of the geolocation prompt: 'idle' (never asked / cleared),
+// 'requesting' (browser prompt up), 'granted' (we have coords; reverse
+// geocode may still be in flight, see UserLocation.label), 'denied' /
+// 'unavailable' / 'timeout' / 'unsupported' (terminal failure modes;
+// the LocationToggle pill renders the matching copy).
+export type UserLocationStatus =
+  | 'idle'
+  | 'requesting'
+  | 'granted'
+  | 'denied'
+  | 'unavailable'
+  | 'timeout'
+  | 'unsupported'
 
 export const PHASES = ['idle', 'listening', 'thinking', 'asking', 'result'] as const
 export type Phase = (typeof PHASES)[number]
@@ -186,6 +201,11 @@ interface Store {
   lastSearchResults: SearchResult[] | null
   lastSearchQuery: string | null
   searchPending: boolean
+  // Browser-geolocation slot. In-memory only (no localStorage) per the
+  // design call. `coords` carries the lat/lng + optional reverse-geocoded
+  // label; `status` tracks the prompt lifecycle for the LocationToggle UI.
+  userLocation: UserLocation | null
+  userLocationStatus: UserLocationStatus
 
   setPhase(phase: Phase): void
   setMicLevel(level: number): void
@@ -214,6 +234,9 @@ interface Store {
   setSearchPending(pending: boolean): void
   setSearchResults(query: string | null, results: SearchResult[] | null): void
   clearSearchResults(): void
+  setUserLocationStatus(status: UserLocationStatus): void
+  setUserLocation(location: UserLocation | null, status?: UserLocationStatus): void
+  clearUserLocation(): void
 }
 
 export const useStore = create<Store>((set, get) => ({
@@ -359,6 +382,15 @@ export const useStore = create<Store>((set, get) => ({
       searchPending: false,
       phase: s.phase === 'result' ? 'listening' : s.phase,
     })),
+  userLocation: null,
+  userLocationStatus: 'idle',
+  setUserLocationStatus: (status) => set({ userLocationStatus: status }),
+  setUserLocation: (location, status) =>
+    set({
+      userLocation: location,
+      userLocationStatus: status ?? (location ? 'granted' : 'idle'),
+    }),
+  clearUserLocation: () => set({ userLocation: null, userLocationStatus: 'idle' }),
   registerSurface: (id) =>
     set((s) => {
       if (s.surfaceIds.includes(id)) return {}

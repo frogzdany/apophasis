@@ -84,13 +84,15 @@ export function useVoiceSession() {
     setMicMuted(false)
     setMicLevel(0)
 
-    const { language, voiceName } = useStore.getState()
+    const { language, voiceName, userLocation } = useStore.getState()
     let apiKey: string
     try {
       // Tell the token endpoint which voice + language to lock into the
       // ephemeral token's liveConnectConstraints — otherwise Live API
-      // ignores the client-supplied speechConfig.
-      apiKey = await getLiveCredential({ voice: voiceName, language })
+      // ignores the client-supplied speechConfig. userLocation (when the
+      // user has shared it) gets baked into Lucy's system instruction so
+      // proximity intent routes through search_places_nearby.
+      apiKey = await getLiveCredential({ voice: voiceName, language, userLocation })
     } catch (err) {
       const detail = err instanceof Error ? err.message : String(err)
       setError(`${t(language, 'controls.error.missingKey')} (${detail})`)
@@ -99,7 +101,7 @@ export function useVoiceSession() {
 
     try {
       const { inputMode } = useStore.getState()
-      const session = new LiveSession({ apiKey, language, voiceName })
+      const session = new LiveSession({ apiKey, language, voiceName, userLocation })
       // Text mode skips the mic entirely — no permission prompt, no
       // worklet, no chunk forwarding. Audio still arrives from Lucy and
       // plays through AudioStreamer as usual.

@@ -11,6 +11,7 @@
 // See https://ai.google.dev/gemini-api/docs/ephemeral-tokens
 
 import { GoogleGenAI } from '@google/genai'
+import type { UserLocation } from '../src/lib/geolocation'
 import type { Language } from '../src/lib/messages'
 import {
   buildLiveConfig,
@@ -32,6 +33,27 @@ const DEFAULT_LANGUAGE: Language = 'en'
 export interface MintOptions {
   voice?: string
   language?: string
+  userLocation?: UserLocation | null
+}
+
+// Validates that a client-supplied user location object is a sane
+// { lat, lng, label?, accuracy? } shape before we bake it into the
+// systemInstruction. Returns null on any malformed input — never throws.
+function sanitizeUserLocation(input: unknown): UserLocation | null {
+  if (!input || typeof input !== 'object') return null
+  const raw = input as Record<string, unknown>
+  const lat = Number(raw.lat)
+  const lng = Number(raw.lng)
+  if (!Number.isFinite(lat) || !Number.isFinite(lng)) return null
+  if (lat < -90 || lat > 90 || lng < -180 || lng > 180) return null
+  const label = typeof raw.label === 'string' ? raw.label.slice(0, 200) : undefined
+  const accuracy = Number(raw.accuracy)
+  return {
+    lat,
+    lng,
+    ...(label ? { label } : {}),
+    ...(Number.isFinite(accuracy) ? { accuracy } : {}),
+  }
 }
 
 // One client per process; safe to reuse across requests.
@@ -80,7 +102,8 @@ export async function mintEphemeralToken(opts: MintOptions = {}): Promise<Minted
   // live.connect call. Whatever the browser tries to add via live.connect is
   // silently dropped when constraints are present. buildLiveConfig is the
   // single source of truth used by both call sites.
-  const liveConfig = buildLiveConfig({ language, voiceName: voice })
+  const userLocation = sanitizeUserLocation(opts.userLocation)
+  const liveConfig = buildLiveConfig({ language, voiceName: voice, userLocation })
 
   // SDK types for authTokens lag the API; cast through a minimal shape.
   const tokensApi = (
