@@ -1,0 +1,303 @@
+/* @theme lucy
+ * Apophasis / Lucy hackathon deck.
+ * Dark, glassy, cyan -> violet accent — mirrors the in-app blob shader.
+ */
+
+@import 'default';
+
+:root {
+  --bg: #0a0b14;
+  --bg-elev: rgba(255, 255, 255, 0.04);
+  --fg: #e6e9f5;
+  --fg-muted: #8b90a8;
+  --accent-1: #4cc9f0;
+  --accent-2: #b794f6;
+  --accent-3: #f72585;
+  --rule: rgba(255, 255, 255, 0.08);
+  --code-bg: #0e1023;
+  --font-sans: -apple-system, "SF Pro Display", "Inter", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono", "SF Mono", Menlo, monospace;
+}
+
+section {
+  background:
+    radial-gradient(1200px 800px at 0% 0%, rgba(76, 201, 240, 0.10), transparent 60%),
+    radial-gradient(1000px 700px at 100% 100%, rgba(183, 148, 246, 0.10), transparent 65%),
+    var(--bg);
+  color: var(--fg);
+  font-family: var(--font-sans);
+  font-size: 26px;
+  line-height: 1.45;
+  padding: 56px 72px 48px;
+}
+
+p, li, td, th { color: var(--fg); }
+
+h1 {
+  font-size: 52px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  margin: 0 0 8px;
+  color: var(--fg);
+}
+
+h2 {
+  font-size: 26px;
+  font-weight: 500;
+  color: var(--fg-muted);
+  margin: 0 0 28px;
+  border-bottom: 1px solid var(--rule);
+  padding-bottom: 10px;
+}
+
+h3 {
+  font-size: 22px;
+  color: var(--accent-1);
+  margin: 18px 0 6px;
+  font-weight: 600;
+}
+
+h1 strong, h2 strong, h3 strong { color: var(--accent-1); }
+
+p, li { line-height: 1.5; }
+
+strong { color: var(--fg); font-weight: 600; }
+em { color: var(--accent-2); font-style: normal; }
+
+a {
+  color: var(--accent-1);
+  text-decoration: none;
+  border-bottom: 1px dashed currentColor;
+}
+
+ul { padding-left: 1.1em; margin: 6px 0; }
+ul li { margin: 6px 0; }
+ul li::marker { color: var(--accent-1); }
+
+code {
+  font-family: var(--font-mono);
+  background: var(--code-bg);
+  border: 1px solid var(--rule);
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.85em;
+  color: var(--accent-1);
+}
+
+pre {
+  background: var(--code-bg);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 18px 22px;
+  font-size: 17px;
+  line-height: 1.4;
+  overflow: hidden;
+}
+
+pre code {
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--fg);
+  font-size: 1em;
+}
+
+table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  font-size: 21px;
+  margin: 12px 0;
+  background: rgba(10, 11, 20, 0.78);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  overflow: hidden;
+  backdrop-filter: blur(4px);
+}
+
+th, td {
+  text-align: left;
+  padding: 11px 16px;
+  border-bottom: 1px solid var(--rule);
+  vertical-align: top;
+  color: var(--fg);
+}
+
+tbody tr:nth-child(odd) td { background: rgba(255, 255, 255, 0.03); }
+tbody tr:nth-child(even) td { background: rgba(255, 255, 255, 0.01); }
+tbody tr:last-child td { border-bottom: 0; }
+
+th {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--accent-1);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 17px;
+  border-bottom: 1px solid var(--rule);
+}
+
+td code, th code {
+  background: rgba(76, 201, 240, 0.10);
+  border-color: rgba(76, 201, 240, 0.25);
+  color: var(--accent-1);
+}
+
+blockquote {
+  border-left: 3px solid var(--accent-2);
+  padding: 8px 18px;
+  color: var(--fg-muted);
+  font-style: italic;
+  background: var(--bg-elev);
+  border-radius: 0 8px 8px 0;
+  margin: 12px 0;
+}
+
+hr {
+  border: 0;
+  border-top: 1px solid var(--rule);
+  margin: 18px 0;
+}
+
+/* Lead / title slide */
+section.lead {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  background:
+    radial-gradient(700px 500px at 25% 35%, rgba(76, 201, 240, 0.32), transparent 70%),
+    radial-gradient(700px 500px at 75% 70%, rgba(183, 148, 246, 0.28), transparent 70%),
+    var(--bg);
+  text-align: left;
+}
+
+section.lead h1 {
+  font-size: 108px;
+  font-weight: 800;
+  background: linear-gradient(120deg, var(--accent-1), var(--accent-2) 60%, var(--accent-3));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  letter-spacing: -0.03em;
+  margin: 0 0 12px;
+}
+
+section.lead h2 {
+  border: none;
+  color: var(--fg);
+  font-weight: 400;
+  font-size: 34px;
+  margin: 0 0 8px;
+  padding: 0;
+}
+
+section.lead h3 {
+  color: var(--fg-muted);
+  font-weight: 400;
+  font-size: 22px;
+  margin: 24px 0 0;
+}
+
+/* Two-column layout: <!-- _class: cols --> */
+section.cols {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  column-gap: 44px;
+  row-gap: 4px;
+}
+
+section.cols > h1,
+section.cols > h2,
+section.cols > hr,
+section.cols > p.full {
+  grid-column: 1 / -1;
+}
+
+/* Pillar card (used inside cols slides for the four-criteria grid) */
+.pillar {
+  background: var(--bg-elev);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 16px 20px;
+  margin: 0;
+}
+
+.pillar h3 { margin-top: 0; }
+.pillar p, .pillar ul { font-size: 20px; }
+
+/* Footer + page numbers */
+section::after {
+  color: var(--fg-muted);
+  font-weight: 400;
+  font-size: 14px;
+  bottom: 18px;
+  right: 28px;
+}
+
+footer {
+  color: var(--fg-muted);
+  font-size: 14px;
+  bottom: 18px;
+  left: 28px;
+}
+
+/* Inline diagrams + illustrations */
+img {
+  max-width: 100%;
+  border-radius: 14px;
+  border: 1px solid var(--rule);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.4),
+    0 24px 60px -20px rgba(76, 201, 240, 0.18),
+    0 8px 30px -10px rgba(183, 148, 246, 0.18);
+}
+
+section.diagram {
+  text-align: center;
+  padding: 40px 56px 36px;
+}
+
+section.diagram h1 { font-size: 40px; }
+section.diagram h2 { font-size: 22px; margin-bottom: 18px; }
+
+section.diagram img {
+  display: block;
+  margin: 0 auto 18px;
+  max-height: 60vh;
+}
+
+section.diagram p.caption {
+  font-size: 19px;
+  color: var(--fg-muted);
+  text-align: left;
+  max-width: 1080px;
+  margin: 0 auto;
+  line-height: 1.45;
+}
+
+section.diagram p.caption strong { color: var(--fg); }
+section.diagram p.caption code {
+  background: rgba(76, 201, 240, 0.10);
+  border-color: rgba(76, 201, 240, 0.25);
+}
+
+/* Lead/hero slide darkening overlay (used with _backgroundImage) */
+section.lead.hero {
+  background-color: var(--bg);
+}
+section.lead.hero h1,
+section.lead.hero h2,
+section.lead.hero h3 {
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.6);
+}
+
+/* Tighter spacing on the dense pillar slides */
+section.dense {
+  font-size: 22px;
+  padding: 44px 60px 36px;
+}
+
+section.dense h1 { font-size: 44px; }
+section.dense h2 { font-size: 22px; margin-bottom: 18px; }
+section.dense h3 { font-size: 19px; margin: 10px 0 4px; }
+section.dense ul li { margin: 3px 0; }
