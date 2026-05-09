@@ -13,13 +13,14 @@ import { VoiceSelector } from './VoiceSelector'
 export function Controls() {
   const phase = useStore((s) => s.phase)
   const cyclePhase = useStore((s) => s.cyclePhase)
+  const micMuted = useStore((s) => s.micMuted)
   const voiceActive = useStore((s) => s.voiceActive)
   const lite = useStore((s) => s.lite)
   const toggleLite = useStore((s) => s.toggleLite)
   const language = useStore((s) => s.language)
   const toggleLanguage = useStore((s) => s.toggleLanguage)
   const registerSurface = useStore((s) => s.registerSurface)
-  const { start, stop, error } = useVoiceSession()
+  const { start, stop, toggleMute, error } = useVoiceSession()
   const { t } = useT()
 
   const onTest = (preset: DemoPreset) => {
@@ -39,10 +40,16 @@ export function Controls() {
         {t('controls.next')}
       </Button>
       {voiceActive ? (
-        <Button variant="destructive" size="sm" onClick={stop}>
-          <MicOff className="size-3" />
-          {t('controls.stop')}
-        </Button>
+        <>
+          <Button variant={micMuted ? 'secondary' : 'ghost'} size="sm" onClick={toggleMute}>
+            {micMuted ? <Mic className="size-3" /> : <MicOff className="size-3" />}
+            {micMuted ? t('controls.unmute') : t('controls.mute')}
+          </Button>
+          <Button variant="destructive" size="sm" onClick={stop}>
+            <MicOff className="size-3" />
+            {t('controls.stop')}
+          </Button>
+        </>
       ) : (
         <Button size="sm" onClick={start}>
           <Mic className="size-3" />

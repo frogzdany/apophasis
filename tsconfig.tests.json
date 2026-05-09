@@ -7,11 +7,12 @@
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
     "moduleDetection": "force",
+    "jsx": "react-jsx",
     "noEmit": true,
     "skipLibCheck": true,
     "strict": true,
     "verbatimModuleSyntax": true,
-    "types": ["node", "vitest/globals", "vite/client"],
+    "types": ["node", "vitest/globals", "vite/client", "@testing-library/jest-dom"],
     "paths": {
       "@/*": ["./src/*"]
     },
