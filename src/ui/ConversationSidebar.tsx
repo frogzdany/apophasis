@@ -54,9 +54,10 @@ export function ConversationSidebar() {
     <Card
       ref={rootRef}
       className="
-        pointer-events-auto fixed top-6 bottom-24 left-6 z-20 flex
-        w-[min(380px,32vw)] overflow-hidden
+        pointer-events-auto fixed top-14 bottom-24 left-0 z-20 flex
+        w-[calc(100vw-2rem)] mx-4 overflow-hidden
         flex-col gap-3 border-white/10 bg-background/85 p-4 backdrop-blur-md
+        md:top-6 md:left-6 md:mx-0 md:w-[min(380px,32vw)] md:bottom-24
       "
     >
       <div className="flex shrink-0 items-center justify-between">

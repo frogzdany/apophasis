@@ -28,70 +28,76 @@ export function Controls() {
   }
 
   return (
-    <div className="pointer-events-auto fixed bottom-7 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-background/55 px-3 py-2 backdrop-blur-md">
+    <div data-tour="controls" className="pointer-events-auto fixed bottom-4 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full border border-white/10 bg-background/55 px-3 py-2 backdrop-blur-md md:bottom-7">
       <Badge variant="secondary" className="font-mono uppercase tracking-widest">
         {t(`phase.${phase}`)}
       </Badge>
-      <MicSelector />
-      <VoiceSelector />
-      <Button variant="ghost" size="sm" onClick={cyclePhase}>
-        <Sparkles className="size-3" />
-        {t('controls.next')}
-      </Button>
+      <span className="hidden md:contents">
+        <MicSelector />
+        <VoiceSelector />
+        <Button variant="ghost" size="sm" onClick={cyclePhase}>
+          <Sparkles className="size-3" />
+          {t('controls.next')}
+        </Button>
+      </span>
       {voiceActive ? (
         <Button variant="destructive" size="sm" onClick={stop}>
           <MicOff className="size-3" />
           {t('controls.stop')}
         </Button>
       ) : (
-        <Button size="sm" onClick={start}>
+        <Button data-tour="talk-button" size="sm" onClick={start}>
           <Mic className="size-3" />
           {t('controls.talk')}
         </Button>
       )}
-      <Popover>
-        <PopoverTrigger asChild>
-          <Button variant="ghost" size="sm" title={t('controls.testTooltip')}>
-            <FlaskConical className="size-3" />
-            {t('controls.test')}
-          </Button>
-        </PopoverTrigger>
-        <PopoverContent
-          align="end"
-          className="flex w-56 flex-col gap-1 border-white/10 bg-background/90 p-2 backdrop-blur-md"
-        >
-          {DEMO_PRESETS.map((preset) => (
-            <Button
-              key={preset}
-              variant="ghost"
-              size="sm"
-              className="justify-start"
-              onClick={() => onTest(preset)}
-            >
-              {t(`preset.${preset}`) || DEMO_LABELS[preset]}
+      <span className="hidden md:contents">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button variant="ghost" size="sm" title={t('controls.testTooltip')}>
+              <FlaskConical className="size-3" />
+              {t('controls.test')}
             </Button>
-          ))}
-        </PopoverContent>
-      </Popover>
-      <Button
-        variant={lite ? 'secondary' : 'ghost'}
-        size="sm"
-        onClick={toggleLite}
-        title={t('controls.liteTooltip')}
-      >
-        <Zap className="size-3" />
-        {lite ? t('controls.liteOn') : t('controls.lite')}
-      </Button>
-      <Button
-        variant="ghost"
-        size="sm"
-        onClick={toggleLanguage}
-        title={t('controls.langTooltip')}
-        aria-label={t('controls.langTooltip')}
-      >
-        <Languages className="size-3" />
-        {LANGUAGE_LABEL[language]}
-      </Button>
+          </PopoverTrigger>
+          <PopoverContent
+            align="end"
+            className="flex w-56 flex-col gap-1 border-white/10 bg-background/90 p-2 backdrop-blur-md"
+          >
+            {DEMO_PRESETS.map((preset) => (
+              <Button
+                key={preset}
+                variant="ghost"
+                size="sm"
+                className="justify-start"
+                onClick={() => onTest(preset)}
+              >
+                {t(`preset.${preset}`) || DEMO_LABELS[preset]}
+              </Button>
+            ))}
+          </PopoverContent>
+        </Popover>
+        <Button
+          data-tour="lite-toggle"
+          variant={lite ? 'secondary' : 'ghost'}
+          size="sm"
+          onClick={toggleLite}
+          title={t('controls.liteTooltip')}
+        >
+          <Zap className="size-3" />
+          {lite ? t('controls.liteOn') : t('controls.lite')}
+        </Button>
+        <Button
+          data-tour="lang-toggle"
+          variant="ghost"
+          size="sm"
+          onClick={toggleLanguage}
+          title={t('controls.langTooltip')}
+          aria-label={t('controls.langTooltip')}
+        >
+          <Languages className="size-3" />
+          {LANGUAGE_LABEL[language]}
+        </Button>
+      </span>
       {error && <span className="ml-1 max-w-[280px] text-destructive text-xs">{error}</span>}
     </div>
   )

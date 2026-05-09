@@ -52,7 +52,7 @@ export function MicSelector() {
 
   return (
     <Select value={selectedMicId} onValueChange={setSelectedMicId}>
-      <SelectTrigger size="sm" className="max-w-[220px]" title={t('mic.title')}>
+      <SelectTrigger data-tour="mic-selector" size="sm" className="max-w-[220px]" title={t('mic.title')}>
         <SelectValue placeholder={t('mic.placeholder')} />
       </SelectTrigger>
       <SelectContent>
