@@ -126,7 +126,7 @@ function ResultCard({ result, t }: { result: SearchResult; t: ReturnType<typeof 
             <Button variant="ghost" size="xs" asChild>
               <a href={result.externalUrl} target="_blank" rel="noreferrer">
                 <ExternalLink className="size-3" />
-                {t('gallery.open')}
+                {t(`gallery.open.${result.kind}`)}
               </a>
             </Button>
           )}

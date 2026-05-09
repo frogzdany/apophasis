@@ -1,4 +1,13 @@
-import { FlaskConical, Languages, Mic, MicOff, MoreHorizontal, Sparkles, Zap } from 'lucide-react'
+import {
+  FlaskConical,
+  Keyboard,
+  Languages,
+  Mic,
+  MicOff,
+  MoreHorizontal,
+  Sparkles,
+  Zap,
+} from 'lucide-react'
 import { useState } from 'react'
 import { DEMO_LABELS, DEMO_PRESETS, type DemoPreset, dispatchDemoSurface } from '@/a2ui/demoSurface'
 import { Badge } from '@/components/ui/badge'
@@ -14,14 +23,17 @@ import { VoiceSelector } from './VoiceSelector'
 export function Controls() {
   const phase = useStore((s) => s.phase)
   const cyclePhase = useStore((s) => s.cyclePhase)
+  const micMuted = useStore((s) => s.micMuted)
   const voiceActive = useStore((s) => s.voiceActive)
   const lite = useStore((s) => s.lite)
   const toggleLite = useStore((s) => s.toggleLite)
   const language = useStore((s) => s.language)
   const toggleLanguage = useStore((s) => s.toggleLanguage)
+  const inputMode = useStore((s) => s.inputMode)
+  const toggleInputMode = useStore((s) => s.toggleInputMode)
   const registerSurface = useStore((s) => s.registerSurface)
   const clearSurfaces = useStore((s) => s.clearSurfaces)
-  const { start, stop, error } = useVoiceSession()
+  const { start, stop, toggleMute, error } = useVoiceSession()
   const { t } = useT()
   const [moreOpen, setMoreOpen] = useState(false)
 
@@ -46,6 +58,17 @@ export function Controls() {
           {t('controls.next')}
         </Button>
       </span>
+      {/* Input-mode toggle — always visible (gates voice vs text before starting) */}
+      <Button
+        variant={inputMode === 'text' ? 'secondary' : 'ghost'}
+        size="sm"
+        onClick={toggleInputMode}
+        title={t('controls.inputMode.tooltip')}
+        disabled={voiceActive}
+      >
+        {inputMode === 'text' ? <Keyboard className="size-3" /> : <Mic className="size-3" />}
+        {t(inputMode === 'text' ? 'controls.inputMode.text' : 'controls.inputMode.voice')}
+      </Button>
       {/* Language toggle — always visible */}
       <Button
         data-tour="lang-toggle"
@@ -58,15 +81,21 @@ export function Controls() {
         <Languages className="size-3" />
         {LANGUAGE_LABEL[language]}
       </Button>
-      {/* Talk / Stop — always visible */}
+      {/* Talk / Stop / Mute — always visible */}
       {voiceActive ? (
-        <Button variant="destructive" size="sm" onClick={stop}>
-          <MicOff className="size-3" />
-          {t('controls.stop')}
-        </Button>
+        <>
+          <Button variant={micMuted ? 'secondary' : 'ghost'} size="sm" onClick={toggleMute}>
+            {micMuted ? <Mic className="size-3" /> : <MicOff className="size-3" />}
+            {micMuted ? t('controls.unmute') : t('controls.mute')}
+          </Button>
+          <Button variant="destructive" size="sm" onClick={stop}>
+            <MicOff className="size-3" />
+            {t('controls.stop')}
+          </Button>
+        </>
       ) : (
         <Button data-tour="talk-button" size="sm" onClick={start}>
-          <Mic className="size-3" />
+          {inputMode === 'text' ? <Keyboard className="size-3" /> : <Mic className="size-3" />}
           {t('controls.talk')}
         </Button>
       )}

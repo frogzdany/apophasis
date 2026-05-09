@@ -4,11 +4,14 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { APOPHASIS_CATALOG_ID, getProcessor, setActionListener } from '@/a2ui/processor'
 import { AudioStreamer } from '@/audio/player'
 import { AudioRecorder } from '@/audio/recorder'
+import { createSilentPcmChunk } from '@/audio/silence'
 import { getLiveCredential } from '@/gemini/credential'
 import { LiveSession } from '@/gemini/liveSession'
 import { t } from '@/lib/messages'
 import { PROVIDERS_BY_NAME } from '@/lib/search/registry'
 import { endLogSession, logEvent, startLogSession } from '@/lib/sessionLogger'
+import { setTextSubmitter } from '@/lib/textInputBridge'
+import { fetchTts, streamPcm16 } from '@/lib/ttsBridge'
 import { useStore } from '@/store'
 
 interface ActionMeta {
@@ -20,6 +23,7 @@ interface ActionMeta {
 export function useVoiceSession() {
   const setPhase = useStore((s) => s.setPhase)
   const setMicLevel = useStore((s) => s.setMicLevel)
+  const setMicMuted = useStore((s) => s.setMicMuted)
   const setVoiceActive = useStore((s) => s.setVoiceActive)
   const appendInputTranscript = useStore((s) => s.appendInputTranscript)
   const appendOutputTranscript = useStore((s) => s.appendOutputTranscript)
@@ -34,6 +38,7 @@ export function useVoiceSession() {
   const setSearchPending = useStore((s) => s.setSearchPending)
   const setSearchResults = useStore((s) => s.setSearchResults)
   const clearSearchResults = useStore((s) => s.clearSearchResults)
+  const setTextPending = useStore((s) => s.setTextPending)
 
   const recorderRef = useRef<AudioRecorder | null>(null)
   const sessionRef = useRef<LiveSession | null>(null)
@@ -56,17 +61,28 @@ export function useVoiceSession() {
     lastFcBySurface.current.clear()
     logEvent('session.stop')
     endLogSession()
+    setMicMuted(false)
     setVoiceActive(false)
     setMicLevel(0)
     setPhase('idle')
-  }, [setPhase, setMicLevel, setVoiceActive])
+  }, [setMicMuted, setPhase, setMicLevel, setVoiceActive])
 
   const stop = useCallback(() => {
     cleanup()
   }, [cleanup])
 
+  const toggleMute = useCallback(() => {
+    const nextMuted = !useStore.getState().micMuted
+    setMicMuted(nextMuted)
+    if (nextMuted) {
+      setMicLevel(0)
+    }
+  }, [setMicMuted, setMicLevel])
+
   const start = useCallback(async () => {
     setError(null)
+    setMicMuted(false)
+    setMicLevel(0)
 
     const { language, voiceName } = useStore.getState()
     let apiKey: string
@@ -82,8 +98,12 @@ export function useVoiceSession() {
     }
 
     try {
+      const { inputMode } = useStore.getState()
       const session = new LiveSession({ apiKey, language, voiceName })
-      const recorder = new AudioRecorder()
+      // Text mode skips the mic entirely — no permission prompt, no
+      // worklet, no chunk forwarding. Audio still arrives from Lucy and
+      // plays through AudioStreamer as usual.
+      const recorder = inputMode === 'voice' ? new AudioRecorder() : null
       const player = new AudioStreamer()
       sessionRef.current = session
       recorderRef.current = recorder
@@ -422,25 +442,43 @@ export function useVoiceSession() {
         unregisterSurface(activeSurfaceId)
       })
 
-      recorder.addEventListener('chunk', (e) => {
-        // Always forward mic audio — even while Lucy is speaking. Echo
-        // cancellation on the input prevents her own voice from leaking
-        // back, and Gemini Live's server VAD detects the user's voice and
-        // fires `interrupted` so the player drops what's queued.
-        session.sendAudioChunk((e as CustomEvent<ArrayBuffer>).detail)
-        bumpChunks()
-      })
-      recorder.addEventListener('level', (e) => {
-        setMicLevel((e as CustomEvent<number>).detail)
-      })
+      // Recorder is null in text input mode — wrap so we don't dereference
+      // it. The mute path inside still needs the recorder to exist (it's
+      // forwarding chunks the recorder emits), so it lives in the same
+      // guard.
+      if (recorder) {
+        recorder.addEventListener('chunk', (e) => {
+          // Keep the stream flowing even while muted so Gemini still hears
+          // turn-ending silence and can answer to audio that already landed.
+          // Echo cancellation prevents Lucy's own voice from leaking back,
+          // and server VAD fires `interrupted` when the user starts talking
+          // so the player drops anything queued.
+          const chunk = (e as CustomEvent<ArrayBuffer>).detail
+          if (useStore.getState().micMuted) {
+            session.sendAudioChunk(createSilentPcmChunk(chunk))
+            return
+          }
+          session.sendAudioChunk(chunk)
+          bumpChunks()
+        })
+        recorder.addEventListener('level', (e) => {
+          if (useStore.getState().micMuted) {
+            setMicLevel(0)
+            return
+          }
+          setMicLevel((e as CustomEvent<number>).detail)
+        })
+      }
 
       resetTranscripts()
       clearEvents()
       const sid = startLogSession()
-      logEvent('session.start', { language, voiceName, sid })
+      logEvent('session.start', { language, voiceName, sid, inputMode })
       await session.connect()
       await player.resume()
-      await recorder.start({ deviceId: useStore.getState().selectedMicId })
+      if (recorder) {
+        await recorder.start({ deviceId: useStore.getState().selectedMicId })
+      }
 
       setVoiceActive(true)
       setPhase('listening')
@@ -451,6 +489,7 @@ export function useVoiceSession() {
   }, [
     cleanup,
     setMicLevel,
+    setMicMuted,
     setPhase,
     setVoiceActive,
     appendInputTranscript,
@@ -470,5 +509,55 @@ export function useVoiceSession() {
 
   useEffect(() => () => cleanup(), [cleanup])
 
-  return { start, stop, error }
+  // Sends a typed user turn into the Live session by way of TTS. The audio
+  // bytes flow through sendAudioChunk on the same WebSocket the mic uses,
+  // so Lucy sees this as ordinary voice input — VAD, transcription, tool
+  // routing, A2UI updates: all identical to a real spoken turn. Used by
+  // the LeftSidebar text-input footer in inputMode === 'text'.
+  const submitText = useCallback(
+    async (rawText: string): Promise<void> => {
+      const text = rawText.trim()
+      if (!text) return
+      const session = sessionRef.current
+      if (!session?.connected) {
+        setError('Lucy session is not active. Click Talk to start.')
+        return
+      }
+      const lang = useStore.getState().language
+      try {
+        setTextPending(true)
+        addEvent({
+          kind: 'user_speech',
+          title: t(lang, 'event.user_speech'),
+          detail: text,
+        })
+        logEvent('userText.tts', { text })
+        const synth = await fetchTts(text, 'Kore')
+        // Streaming pacing keeps server VAD's 350 ms silence tail effective —
+        // it sees a normal cadence of frames, then quiet, and ends the turn.
+        // sendAudioStreamEnd makes that explicit so we don't wait the extra
+        // 350 ms.
+        await streamPcm16(synth.pcm16k, {
+          onChunk: (chunk) => session.sendAudioChunk(chunk),
+          onEnd: () => session.sendAudioStreamEnd(),
+        })
+      } catch (err) {
+        console.error('[lucy] submitText failed', err)
+        setError(err instanceof Error ? err.message : String(err))
+      } finally {
+        setTextPending(false)
+      }
+    },
+    [addEvent, setTextPending],
+  )
+
+  // Register the text submitter so the LeftSidebar input can call into
+  // this hook's session ref. The sidebar lives outside this component
+  // tree, so the indirection is a singleton bridge instead of a prop.
+  useEffect(() => {
+    setTextSubmitter(submitText)
+    return () => setTextSubmitter(null)
+  }, [submitText])
+
+  return { start, stop, submitText, toggleMute, error }
 }

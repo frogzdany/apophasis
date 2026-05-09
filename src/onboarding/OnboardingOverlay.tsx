@@ -9,7 +9,7 @@ interface OnboardingOverlayProps {
 }
 
 export function OnboardingOverlay({ run, onDone }: OnboardingOverlayProps) {
-  const { t, language } = useT()
+  const { t } = useT()
   const steps = useMemo(() => getTourSteps(t), [t])
 
   const handleEvent = (data: EventData) => {
@@ -34,8 +34,6 @@ export function OnboardingOverlay({ run, onDone }: OnboardingOverlayProps) {
         overlayColor: 'rgba(0, 0, 0, 0.7)',
         spotlightRadius: 12,
         zIndex: 10000,
-        shiftOptions: { padding: 40 },
-        flipOptions: { padding: 40 },
         offset: 16,
       }}
       locale={{

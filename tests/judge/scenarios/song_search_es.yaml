@@ -1,0 +1,43 @@
+id: song_search_es
+description: |
+  Spanish equivalent of song_search_en. Tests that the Spanish system
+  prompt drives the same render-first behaviour and that Lucy speaks in
+  LATAM Spanish (no peninsular tics).
+language: es
+voiceName: Aoede
+inputMode: text
+searchPolicy: strict
+turns:
+  - kind: user
+    text: "Ando buscando una canción que medio recuerdo, melancólica con saxofón, finales de los 90."
+    expect:
+      tools: [render_surface]
+  - kind: submit
+    eventName: search_music
+    dataModel:
+      mood: -0.4
+      instrumento: ["Saxofón"]
+      epoca: ["1990s"]
+    toolMocks:
+      search_music:
+        results:
+          - id: mock-1
+            kind: music
+            title: "Careless Whisper"
+            subtitle: "George Michael"
+        count: 1
+        kind: music
+        summary: "1 mocked match."
+    expect:
+      tools: [search_music]
+
+rubric:
+  description: |
+    Turn 1: render_surface MUST fire first. Spoken reply (if any) must be
+    in LATAM Spanish — accept "tú", reject "vale" / "guay" / "tío". The
+    surface must contain a Slider AND a ChoicePicker AND a Button. All
+    visible labels in the components must be in Spanish.
+    Turn 2: search_music must fire; arg "fragment" should encode the
+    user's hints (instrument, era, mood) in a way iTunes can search.
+  speakLanguage: es
+  maxSentences: 2
