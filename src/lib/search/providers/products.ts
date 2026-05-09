@@ -6,13 +6,15 @@ import { callProxy, type ProxyResult } from './proxyClient'
 const declaration: FunctionDeclaration = {
   name: 'search_products',
   description:
-    'Search for product images via Brave Image Search. Use whenever the ' +
-    'user is exploring or shopping for a specific item visually — the ' +
-    'gallery feeds the morph animation, so what matters is clean photos, ' +
-    'not prices. Returns image, source page link, host, and dimensions; ' +
-    'price / store / rating are NOT available — never promise those. Free-' +
-    'text query works ("waterproof hiking boots", "rolex submariner", ' +
-    '"art-deco floor lamp").',
+    'Visual search via Brave Image Search. Use whenever the user wants to ' +
+    '*see* something — products, places, monuments, themes, abstract ideas ' +
+    '("places with lion statues", "ciudades con murales callejeros", ' +
+    '"art-deco floor lamp", "rolex submariner"). The gallery feeds the ' +
+    'morph animation, so what matters is clean photos, not metadata. Also ' +
+    'the right fallback when a domain-specific search (places / books / ' +
+    'web) returned no matches and the query has visual content. Returns ' +
+    'image, source page link, host, and dimensions; price / store / rating ' +
+    'are NOT available — never promise those.',
   parameters: {
     type: Type.OBJECT,
     properties: {

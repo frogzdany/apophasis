@@ -9,6 +9,7 @@ import { getLiveCredential } from '@/gemini/credential'
 import { LiveSession } from '@/gemini/liveSession'
 import { t } from '@/lib/messages'
 import { PROVIDERS_BY_NAME } from '@/lib/search/registry'
+import type { SearchResult } from '@/lib/search/types'
 import { endLogSession, logEvent, startLogSession } from '@/lib/sessionLogger'
 import { setTextSubmitter } from '@/lib/textInputBridge'
 import { fetchTts, streamPcm16 } from '@/lib/ttsBridge'
@@ -47,6 +48,10 @@ export function useVoiceSession() {
   // Tracks the most recent toolCall id per surface so action submissions
   // route back to the right Gemini function call.
   const lastFcBySurface = useRef<Map<string, ActionMeta>>(new Map())
+  // Counts consecutive empty search results (primary + fallback both empty).
+  // After two in a row, we tell Lucy to render a refinement surface instead
+  // of retrying — keeps the UX from spinning on dead-end queries.
+  const emptyStreakRef = useRef(0)
   const [error, setError] = useState<string | null>(null)
 
   const cleanup = useCallback(() => {
@@ -59,6 +64,7 @@ export function useVoiceSession() {
     playerRef.current = null
     speakingRef.current = false
     lastFcBySurface.current.clear()
+    emptyStreakRef.current = 0
     logEvent('session.stop')
     endLogSession()
     setMicMuted(false)
@@ -222,6 +228,21 @@ export function useVoiceSession() {
             // surface is being prepared so the UI can show a shimmer.
             clearSearchResults()
             setSurfacePending(true)
+            // If a *different* surface is currently open, drop it first so
+            // we don't stack panels (Lucy sometimes renders a domain
+            // selector and then a refinement form on the next turn — only
+            // one should be visible at a time).
+            const { activeSurfaceId: prevSurfaceId } = useStore.getState()
+            if (prevSurfaceId && prevSurfaceId !== surfaceId) {
+              try {
+                processor.processMessages([
+                  { version: 'v0.9', deleteSurface: { surfaceId: prevSurfaceId } },
+                ] as unknown as A2uiMessage[])
+                unregisterSurface(prevSurfaceId)
+              } catch {
+                /* surface may already be gone */
+              }
+            }
             // If a surface with this id already exists (Lucy retried), drop
             // it first so createSurface doesn't error out.
             try {
@@ -298,21 +319,33 @@ export function useVoiceSession() {
               title: t(lang, 'event.search'),
               data: args as Record<string, unknown>,
             })
-            const queryParts: string[] = []
-            for (const v of Object.values(args)) {
-              if (typeof v === 'string') queryParts.push(v)
-              else if (Array.isArray(v))
-                queryParts.push((v as unknown[]).filter((x) => typeof x === 'string').join(' '))
-            }
-            const queryLabel = queryParts.filter(Boolean).join(' · ')
+            // Prefer the explicit `query` arg for sidebar display so chips
+            // read like a search box; only fall back to a multi-arg join
+            // when the tool doesn't take a query (places_nearby, etc.).
+            // Without this, hl/gl/location values bled into the chip and
+            // showed up like "hl es · query …".
+            const queryLabel = (() => {
+              if (typeof args.query === 'string' && args.query.trim()) {
+                return args.query.trim()
+              }
+              const parts: string[] = []
+              for (const v of Object.values(args)) {
+                if (typeof v === 'string') parts.push(v)
+                else if (Array.isArray(v)) {
+                  parts.push((v as unknown[]).filter((x) => typeof x === 'string').join(' '))
+                }
+              }
+              return parts.filter(Boolean).join(' · ')
+            })()
             setSearchPending(true)
             setSearchResults(queryLabel || null, null)
             ;(async () => {
               try {
                 const results = await provider.handler(args as Record<string, unknown>, 5)
-                setSearchResults(queryLabel || null, results)
                 const top = results[0]
                 if (top) {
+                  emptyStreakRef.current = 0
+                  setSearchResults(queryLabel || null, results)
                   addEvent({
                     kind: 'result',
                     title: t(lang, 'event.result'),
@@ -322,26 +355,119 @@ export function useVoiceSession() {
                       ...(top.reason ? { reason: top.reason } : {}),
                     },
                   })
-                } else {
+                  session.sendToolResponse([
+                    {
+                      id: fc.id,
+                      name: fc.name,
+                      response: {
+                        results,
+                        count: results.length,
+                        kind: provider.kind,
+                        summary:
+                          `${results.length} matches. Top: ${top.title}` +
+                          (top.subtitle ? ` (${top.subtitle})` : '') +
+                          '.',
+                      },
+                    },
+                  ])
+                  return
+                }
+                // 0 results — try a transparent visual fallback through
+                // Brave Images so the user sees something useful even when
+                // the domain-specific provider had no hit. Skip the retry
+                // when the original tool already was search_products (no
+                // point) or when we can't produce a usable query string.
+                const fallbackQuery =
+                  (typeof args.query === 'string' && args.query.trim()) ||
+                  queryLabel.replace(/ · /g, ' ').trim()
+                const productsProvider = PROVIDERS_BY_NAME.search_products
+                let fallback: SearchResult[] = []
+                if (productsProvider && fc.name !== 'search_products' && fallbackQuery.length > 0) {
+                  addEvent({
+                    kind: 'search',
+                    title: t(lang, 'event.searchVisualFallback'),
+                    detail: fallbackQuery,
+                  })
+                  try {
+                    // Force English / US locale on the fallback. Brave
+                    // Image recall is dramatically better in English even
+                    // for Spanish-language UIs; the gallery cards are
+                    // visual, so the user doesn't read the metadata.
+                    fallback = await productsProvider.handler(
+                      { query: fallbackQuery, hl: 'en', gl: 'us' },
+                      5,
+                    )
+                  } catch (err) {
+                    console.warn('[lucy] visual fallback threw', err)
+                  }
+                }
+                if (fallback.length > 0) {
+                  emptyStreakRef.current = 0
+                  setSearchResults(queryLabel || null, fallback)
+                  const fallbackTop = fallback[0]
                   addEvent({
                     kind: 'result',
-                    title: t(lang, 'event.noMatches'),
-                    detail: queryLabel || '',
+                    title: t(lang, 'event.result'),
+                    detail: fallbackTop.subtitle
+                      ? `${fallbackTop.title} — ${fallbackTop.subtitle}`
+                      : fallbackTop.title,
+                    data: {
+                      ...fallbackTop.facets,
+                      ...(fallbackTop.reason ? { reason: fallbackTop.reason } : {}),
+                    },
                   })
+                  session.sendToolResponse([
+                    {
+                      id: fc.id,
+                      name: fc.name,
+                      response: {
+                        results: fallback,
+                        count: fallback.length,
+                        kind: 'product',
+                        summary:
+                          `No direct ${provider.kind} matches; visual ` +
+                          `fallback returned ${fallback.length} images for ` +
+                          `"${fallbackQuery}". Briefly tell the user you ` +
+                          'fell back to images and invite them to narrow ' +
+                          'the query (city, era, etc.) if useful.',
+                      },
+                    },
+                  ])
+                  return
                 }
+                // Both the primary call and the visual fallback came up
+                // empty — surface the no-match state to Lucy and the UI.
+                emptyStreakRef.current += 1
+                const streak = emptyStreakRef.current
+                setSearchResults(queryLabel || null, [])
+                addEvent({
+                  kind: 'result',
+                  title: t(lang, 'event.noMatches'),
+                  detail: queryLabel || '',
+                })
+                // Circuit breaker: after two consecutive empty rounds,
+                // tell Lucy to stop searching and render a refinement
+                // surface. Otherwise she tends to retry with slight query
+                // variants forever, leaving the user staring at an empty
+                // gallery.
+                const summary =
+                  streak >= 2
+                    ? `No matches AGAIN (streak ${streak}). STOP searching ` +
+                      'with similar queries this turn. Call render_surface ' +
+                      'with a small refinement panel: a short Text title, ' +
+                      'a TextField for a more specific name or location, ' +
+                      'and a Button. Keep your voice reply to one short ' +
+                      'sentence acknowledging the gap.'
+                    : 'No matches for this query.'
                 session.sendToolResponse([
                   {
                     id: fc.id,
                     name: fc.name,
                     response: {
-                      results,
-                      count: results.length,
+                      results: [],
+                      count: 0,
                       kind: provider.kind,
-                      summary: results.length
-                        ? `${results.length} matches. Top: ${top?.title}` +
-                          (top?.subtitle ? ` (${top.subtitle})` : '') +
-                          '.'
-                        : 'No matches for this query.',
+                      summary,
                     },
                   },
                 ])
