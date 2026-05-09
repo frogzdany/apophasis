@@ -872,6 +872,11 @@ const PLACES_TEXT_FIELD_MASK = [
   'places.googleMapsUri',
   'places.websiteUri',
   'places.regularOpeningHours.openNow',
+  // Photo resource names — resolve to media URIs in a follow-up call so
+  // the gallery and orb get a real image to render. We only need the
+  // first photo per place; widthPx/heightPx aren't requested because we
+  // pass our own maxHeightPx/maxWidthPx caps to the media endpoint.
+  'places.photos.name',
 ].join(',')
 
 // Place Details field paths drop the leading `places.` (single-place response).
@@ -914,6 +919,11 @@ interface GooglePlace {
     openNow?: boolean
     weekdayDescriptions?: string[]
   }
+  // Each photo carries a resource name like "places/<id>/photos/<id>" that
+  // must be passed to the Place Photo (New) media endpoint to resolve a
+  // public CDN URL. The full payload also carries widthPx/heightPx and
+  // authorAttributions, but we only need `name`.
+  photos?: { name?: string }[]
 }
 
 const PRICE_LEVEL_GLYPH: Record<string, string> = {
@@ -951,7 +961,11 @@ async function googlePlacesFetch(
   return res.json()
 }
 
-function adaptGooglePlace(p: GooglePlace, idx: number): NormalisedResult {
+export function adaptGooglePlace(
+  p: GooglePlace,
+  idx: number,
+  photoUri?: string,
+): NormalisedResult {
   const facets: Record<string, string | number> = {}
   if (typeof p.rating === 'number') facets.rating = `★ ${p.rating.toFixed(1)}`
   if (typeof p.userRatingCount === 'number') facets.reviews = `${p.userRatingCount} reviews`
@@ -973,9 +987,50 @@ function adaptGooglePlace(p: GooglePlace, idx: number): NormalisedResult {
     url:
       p.googleMapsUri ??
       buildMapsUrl({ title: p.displayName?.text, address: p.formattedAddress, placeId: p.id }),
+    imageUrl: photoUri,
     facets,
     reason: 'Google Places',
   }
+}
+
+// Resolve a Place Photo resource name (e.g. "places/<id>/photos/<id>")
+// into a public CDN URL via the Place Photo (New) media endpoint. We pass
+// skipHttpRedirect=true so the response is JSON ({ name, photoUri }) and
+// can be fed directly into NormalisedResult.imageUrl. Returned URIs are
+// valid for ~1 hour, which is far longer than any session.
+export async function resolvePlacePhoto(photoName: string): Promise<string | undefined> {
+  const key = process.env.GOOGLE_PLACES_API_KEY
+  if (!key) return undefined
+  const params = new URLSearchParams({
+    skipHttpRedirect: 'true',
+    maxHeightPx: '512',
+    maxWidthPx: '512',
+  })
+  try {
+    const res = await withTimeout(
+      fetch(`${PLACES_BASE}/${photoName}/media?${params.toString()}`, {
+        method: 'GET',
+        headers: { 'X-Goog-Api-Key': key },
+      }),
+    )
+    if (!res.ok) return undefined
+    const body = (await res.json()) as { photoUri?: string }
+    return body.photoUri
+  } catch {
+    return undefined
+  }
+}
+
+// Resolve the first photo for each place in parallel. Missing photos and
+// failed lookups degrade silently — the gallery/orb fall back to the
+// kind icon when imageUrl is undefined.
+async function resolveFirstPhotos(places: GooglePlace[]): Promise<(string | undefined)[]> {
+  return Promise.all(
+    places.map((p) => {
+      const name = p.photos?.[0]?.name
+      return name ? resolvePlacePhoto(name) : Promise.resolve(undefined)
+    }),
+  )
 }
 
 // Build a stable Google Maps URL for a place. The `place_id`-keyed search
@@ -1020,8 +1075,9 @@ async function placesGoogleSearch(args: {
       error: err instanceof Error ? err.message : String(err),
     }
   }
-  const items = payload.places ?? []
-  const results = items.slice(0, args.max).map(adaptGooglePlace)
+  const items = (payload.places ?? []).slice(0, args.max)
+  const photos = await resolveFirstPhotos(items)
+  const results = items.map((p, i) => adaptGooglePlace(p, i, photos[i]))
   return { results, elapsedMs: Math.round(performance.now() - startedAt) }
 }
 
@@ -1061,8 +1117,9 @@ async function placesNearbySearch(args: {
       error: err instanceof Error ? err.message : String(err),
     }
   }
-  const items = payload.places ?? []
-  const results = items.slice(0, args.max).map(adaptGooglePlace)
+  const items = (payload.places ?? []).slice(0, args.max)
+  const photos = await resolveFirstPhotos(items)
+  const results = items.map((p, i) => adaptGooglePlace(p, i, photos[i]))
   return { results, elapsedMs: Math.round(performance.now() - startedAt) }
 }
 
