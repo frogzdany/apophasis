@@ -19,6 +19,8 @@ const MESSAGES: Record<Language, Record<string, string>> = {
     'phase.result': 'RESULT',
 
     'controls.talk': 'Talk to Lucy',
+    'controls.mute': 'Mute mic',
+    'controls.unmute': 'Unmute mic',
     'controls.stop': 'Stop talking',
     'controls.next': 'Next state',
     'controls.inputMode.voice': 'Voice',
@@ -85,6 +87,8 @@ const MESSAGES: Record<Language, Record<string, string>> = {
     'phase.result': 'RESULTADO',
 
     'controls.talk': 'Hablar con Lucy',
+    'controls.mute': 'Mutear micrófono',
+    'controls.unmute': 'Activar micrófono',
     'controls.stop': 'Detener',
     'controls.next': 'Siguiente estado',
     'controls.inputMode.voice': 'Voz',
