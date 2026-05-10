@@ -39,6 +39,7 @@ export function useVoiceSession() {
   const setSearchResults = useStore((s) => s.setSearchResults)
   const clearSearchResults = useStore((s) => s.clearSearchResults)
   const setTextPending = useStore((s) => s.setTextPending)
+  const setDrawingOpen = useStore((s) => s.setDrawingOpen)
 
   const recorderRef = useRef<AudioRecorder | null>(null)
   const sessionRef = useRef<LiveSession | null>(null)
@@ -47,6 +48,10 @@ export function useVoiceSession() {
   // Tracks the most recent toolCall id per surface so action submissions
   // route back to the right Gemini function call.
   const lastFcBySurface = useRef<Map<string, ActionMeta>>(new Map())
+  // Forwards the DrawingResultPanel's `lucyDrawingContext` window event
+  // into the live session as a synthetic [drawing_context] user-text turn
+  // so Lucy can act on what was sketched.
+  const drawingListenerRef = useRef<((e: Event) => void) | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   const cleanup = useCallback(() => {
@@ -54,6 +59,10 @@ export function useVoiceSession() {
     sessionRef.current?.close()
     playerRef.current?.close()
     setActionListener(null)
+    if (drawingListenerRef.current) {
+      window.removeEventListener('lucyDrawingContext', drawingListenerRef.current)
+      drawingListenerRef.current = null
+    }
     recorderRef.current = null
     sessionRef.current = null
     playerRef.current = null
@@ -282,6 +291,16 @@ export function useVoiceSession() {
               title: t(useStore.getState().language, 'event.close'),
               detail: surfaceId,
             })
+          } else if (fc.name === 'open_drawing_canvas') {
+            const message = typeof args.message === 'string' ? args.message : undefined
+            setDrawingOpen(true, message)
+            addEvent({
+              kind: 'note',
+              title: t(useStore.getState().language, 'event.drawing'),
+              detail: message,
+            })
+            session.sendToolResponse([{ id: fc.id, name: fc.name, response: { ok: true } }])
+            return
           } else if (fc.name === 'respond_in_voice') {
             // No-op: the model handles the voice itself; we just ack so the
             // turn closes. Required because mode='ANY' forces a tool call
@@ -443,6 +462,32 @@ export function useVoiceSession() {
         }
         unregisterSurface(activeSurfaceId)
       })
+
+      // DrawingResultPanel dispatches `lucyDrawingContext` with the search
+      // query when the user clicks the Search button. Forward it to the
+      // live session as a synthetic [drawing_context] user-text turn so
+      // Lucy can pick the right search_* tool with the description in
+      // hand. The cleanup callback removes this listener on session stop.
+      const onDrawingContext = (e: Event) => {
+        const desc = (e as CustomEvent<string>).detail
+        if (!desc) return
+        const lang = useStore.getState().language
+        addEvent({
+          kind: 'note',
+          title: t(lang, 'event.drawingResult'),
+          detail: desc,
+        })
+        const text = [
+          '[drawing_context]',
+          `The user drew the following: ${desc}`,
+          'Use this visual context immediately — call the most fitting search_* tool',
+          'with fields pre-filled from the description, or render_surface if more',
+          'refinement is helpful.',
+        ].join('\n')
+        session.sendUserText(text)
+      }
+      drawingListenerRef.current = onDrawingContext
+      window.addEventListener('lucyDrawingContext', onDrawingContext)
 
       // Recorder is null in text input mode — wrap so we don't dereference
       // it. The mute path inside still needs the recorder to exist (it's
