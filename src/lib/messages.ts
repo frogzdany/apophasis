@@ -52,7 +52,7 @@ const MESSAGES: Record<Language, Record<string, string>> = {
     'visitor.subtitle':
       "Lucy is a voice-driven reverse search engine for things you can't quite name — a song stuck in your head, a place a friend mentioned once, a book you only remember by its cover.",
     'visitor.context':
-      'Built for the AI Tinkerers Vibe Coding hackathon at Google Polanco. Tell us a bit about yourself before we hand the mic over to Lucy — it lets us cap demo abuse and stay in touch after the event.',
+      "Built in 6 hours at the AI Tinkerers Vibe Coding hackathon at Google Polanco. We'd love to know who's trying Lucy — drop your details so we can stay in touch, swap notes after the event, and let you know what we ship next.",
     'visitor.field.name': 'Name',
     'visitor.field.namePlaceholder': 'Your full name',
     'visitor.field.email': 'Email',
@@ -63,6 +63,8 @@ const MESSAGES: Record<Language, Record<string, string>> = {
     'visitor.submitting': 'Verifying…',
     'visitor.fineprint':
       "We don't share your details. reCAPTCHA v3 protects this form against abuse.",
+    'visitor.link.linkedin': 'Read the LinkedIn post',
+    'visitor.link.repo': 'View source on GitHub',
     'visitor.error.name_required': 'Please add your name.',
     'visitor.error.name_too_long': 'That name is unusually long — please shorten it.',
     'visitor.error.email_required': 'Please add an email so we can follow up.',
@@ -208,7 +210,7 @@ const MESSAGES: Record<Language, Record<string, string>> = {
     'visitor.subtitle':
       'Lucy es un buscador inverso por voz para cosas que no puedes nombrar: una canción atorada en la cabeza, un lugar que alguien te describió una vez, un libro que sólo recuerdas por la portada.',
     'visitor.context':
-      'Construido para el Hackathon de Vibe Coding de AI Tinkerers en Google Polanco. Cuéntanos un poco de ti antes de pasarle el micrófono a Lucy — así controlamos el abuso del demo y nos mantenemos en contacto después del evento.',
+      'Construido en 6 horas en el Hackathon de Vibe Coding de AI Tinkerers en Google Polanco. Nos encantaría saber quién está probando a Lucy — déjanos tus datos para mantenernos en contacto, intercambiar notas después del evento y avisarte qué viene después.',
     'visitor.field.name': 'Nombre',
     'visitor.field.namePlaceholder': 'Tu nombre completo',
     'visitor.field.email': 'Correo',
@@ -219,6 +221,8 @@ const MESSAGES: Record<Language, Record<string, string>> = {
     'visitor.submitting': 'Verificando…',
     'visitor.fineprint':
       'No compartimos tus datos. reCAPTCHA v3 protege este formulario contra abuso.',
+    'visitor.link.linkedin': 'Lee el post en LinkedIn',
+    'visitor.link.repo': 'Ver el código en GitHub',
     'visitor.error.name_required': 'Por favor escribe tu nombre.',
     'visitor.error.name_too_long': 'Ese nombre es inusualmente largo — acórtalo por favor.',
     'visitor.error.email_required': 'Necesitamos un correo para mantenernos en contacto.',

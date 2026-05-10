@@ -48,6 +48,7 @@
   },
   "devDependencies": {
     "@biomejs/biome": "^2.4.14",
+    "@marp-team/marp-cli": "^4.3.0",
     "@tailwindcss/vite": "^4.2.4",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
