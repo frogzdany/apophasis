@@ -72,6 +72,32 @@ const UI_TOOLS: FunctionDeclaration[] = [
     },
   },
   {
+    name: 'open_drawing_canvas',
+    description:
+      'Open an interactive drawing canvas so the user can sketch what they are looking ' +
+      'for. Trigger this when: (1) the user wants to draw ("let me draw it", "quiero ' +
+      'dibujarte", "te lo dibujo", "draw for me", "déjame dibujarlo"); (2) the user ' +
+      'expresses frustration that you are not understanding ("no me estás entendiendo", ' +
+      '"no me comprendes", "you\'re not getting it", "that\'s not what I mean", "eso no ' +
+      'es lo que busco"); (3) after 2+ failed search attempts for the same thing. After ' +
+      'the user draws and confirms, you will receive a [drawing_context] message with a ' +
+      'detailed description of what was drawn — use it immediately to search or ' +
+      'render_surface with fields pre-filled.',
+    parameters: {
+      type: Type.OBJECT,
+      properties: {
+        message: {
+          type: Type.STRING,
+          description:
+            'Short message shown above the canvas (max 20 words, in the user\'s ' +
+            'language). Example: "Draw what you\'re looking for and I\'ll interpret ' +
+            'it." / "Dibuja lo que buscas y lo interpreto."',
+        },
+      },
+      required: ['message'],
+    },
+  },
+  {
     name: 'respond_in_voice',
     description:
       'Use ONLY for plain conversational replies that do not require any UI or ' +
