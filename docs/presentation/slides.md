@@ -45,13 +45,13 @@ footer: 'Apophasis · lucy-blob · Beyond the Chatbox 2026'
 
 ---
 
-<!-- _class: cols -->
+<!-- _class: cols dense -->
 
 ## One real conversation
 
 # *"A song… something about Tokyo… sad piano…"*
 
-![w:520](assets/slide4-conversation.png)
+![w:480](assets/slide4-conversation.png)
 
 <div>
 
@@ -69,7 +69,7 @@ footer: 'Apophasis · lucy-blob · Beyond the Chatbox 2026'
 
 ## Architecture
 
-![w:1100](assets/architecture.png)
+![w:880](assets/architecture.png)
 
 <p class="caption">
 
@@ -115,7 +115,7 @@ footer: 'Apophasis · lucy-blob · Beyond the Chatbox 2026'
 
 ## Generative UI, in motion
 
-![w:1100](assets/sequence.png)
+![w:880](assets/sequence.png)
 
 <p class="caption">
 

@@ -4,24 +4,9 @@ Single Cloud Run service, fronted by an `*.a.run.app` HTTPS URL Google issues
 for free. Infra in Terraform; container built locally and pushed to Artifact
 Registry.
 
-```
-                              Cloud Run service (lucy-blob)
-   *.a.run.app  ─►  ┌────────────────────────────────────────┐
-                    │  Bun container                          │
-                    │   ├─ /                  → dist/ (SPA)   │
-                    │   ├─ /api/log           → GCS bucket    │
-                    │   ├─ /api/health        → store info    │
-                    │   ├─ /api/gemini-token  → ephem. token  │
-                    │   └─ /api/search/<x>    → upstream API  │
-                    └────────────────────────────────────────┘
-                                    │
-                          Secret Manager:
-                            GEMINI_API_KEY
-                            BRAVE_API_KEY, TAVILY_API_KEY, EXA_API_KEY,
-                            SERPAPI_KEY, GOOGLE_BOOKS_API_KEY,
-                            GOOGLE_PLACES_API_KEY, YOUTUBE_API_KEY
-                          GCS bucket  (session logs)
-```
+![GCP deploy topology — Visitor browser → Cloud Run revision (image pulled from Artifact Registry); env populated from Secret Manager via secretKeyRef; logs sink into the GCS bucket; the runtime service-account has secretAccessor + objectAdmin grants tying it all together.](../docs/architecture-deploy.png)
+
+Source: [`docs/architecture-deploy.py`](../docs/architecture-deploy.py) (`diagrams` Python package, GCP icon set, Graphviz).
 
 ## One-time setup
 
