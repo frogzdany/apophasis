@@ -16,7 +16,9 @@
 import { stat } from 'node:fs/promises'
 import { extname, join, normalize, resolve } from 'node:path'
 import { mintEphemeralToken } from './geminiToken'
+import { generateSurface } from './generateSurface'
 import { handleGeocodeReverse } from './geocodeProxy'
+import { type DrawingInterpretation, interpretDrawing } from './interpretDrawing'
 import { appendLog, describeStore } from './logStore'
 import { cacheStats } from './searchCache'
 import { handleSearchRequest } from './searchProxy'
@@ -164,6 +166,56 @@ const server = Bun.serve({
       }
       const outcome = await handleGeocodeReverse(body)
       return json(outcome.body, outcome.status, req)
+    }
+
+    // /api/interpret-drawing — vision-model pass over a base64 PNG of the
+    // user's drawing; returns the structured DrawingInterpretation
+    // (description, domain, searchQuery, title, attributes) the surface
+    // generator consumes. Rides the same per-IP search rate bucket.
+    if (url.pathname === '/api/interpret-drawing' && req.method === 'POST') {
+      if (!searchRateOk(clientIp(req))) {
+        return json({ error: 'rate limit exceeded' }, 429, req)
+      }
+      let body: { imageBase64?: string } = {}
+      try {
+        body = (await req.json()) as typeof body
+      } catch {
+        return json({ error: 'invalid JSON body' }, 400, req)
+      }
+      if (!body.imageBase64) {
+        return json({ error: 'imageBase64 required' }, 400, req)
+      }
+      try {
+        const interp = await interpretDrawing(body.imageBase64)
+        return json(interp, 200, req)
+      } catch (err) {
+        console.error('[interpret-drawing] failed', err)
+        return json({ error: String(err) }, 500, req)
+      }
+    }
+
+    // /api/generate-surface — turns a DrawingInterpretation into an A2UI
+    // component spec the browser renders into the drawing result panel.
+    if (url.pathname === '/api/generate-surface' && req.method === 'POST') {
+      if (!searchRateOk(clientIp(req))) {
+        return json({ error: 'rate limit exceeded' }, 429, req)
+      }
+      let body: { interpretation?: DrawingInterpretation } = {}
+      try {
+        body = (await req.json()) as typeof body
+      } catch {
+        return json({ error: 'invalid JSON body' }, 400, req)
+      }
+      if (!body.interpretation) {
+        return json({ error: 'interpretation required' }, 400, req)
+      }
+      try {
+        const surface = await generateSurface(body.interpretation)
+        return json(surface, 200, req)
+      } catch (err) {
+        console.error('[generate-surface] failed', err)
+        return json({ error: String(err) }, 500, req)
+      }
     }
 
     // /api/tts — synthesises a text turn into 16-bit PCM @ 24 kHz so the
