@@ -24,6 +24,7 @@ import { cacheStats } from './searchCache'
 import { handleSearchRequest } from './searchProxy'
 import { searchRateOk } from './searchRateLimit'
 import { handleTtsRequest } from './ttsProxy'
+import { getPublicConfig, handleVisitorRequest } from './visitorProxy'
 
 interface LogEntry {
   sessionId: string
@@ -82,6 +83,13 @@ const server = Bun.serve({
     if (url.pathname === '/api/health') {
       // Health stays open so Cloud Run probes and curl-from-shell work.
       return json({ ok: true, store: describeStore(), searchCache: cacheStats() }, 200, req)
+    }
+
+    // /api/config — public-only config (currently the reCAPTCHA site key)
+    // so the SPA can lazy-load grecaptcha without baking the value into
+    // the JS bundle at build time. Open like /api/health.
+    if (url.pathname === '/api/config' && req.method === 'GET') {
+      return json(getPublicConfig(), 200, req)
     }
 
     // Everything else under /api/* is gated by Origin allowlist.
@@ -165,6 +173,23 @@ const server = Bun.serve({
         return json({ error: 'invalid JSON body' }, 400, req)
       }
       const outcome = await handleGeocodeReverse(body)
+      return json(outcome.body, outcome.status, req)
+    }
+
+    // /api/visitor — verifies a reCAPTCHA v3 token for the registration
+    // dialog and appends a JSONL record to the existing logs bucket under
+    // visitors/YYYY-MM-DD.jsonl. Same per-IP rate bucket as search.
+    if (url.pathname === '/api/visitor' && req.method === 'POST') {
+      if (!searchRateOk(clientIp(req))) {
+        return json({ ok: false, error: 'rate_limited' }, 429, req)
+      }
+      let body: Record<string, unknown> = {}
+      try {
+        body = (await req.json()) as Record<string, unknown>
+      } catch {
+        return json({ ok: false, error: 'invalid_json' }, 400, req)
+      }
+      const outcome = await handleVisitorRequest(body, { remoteIp: clientIp(req) })
       return json(outcome.body, outcome.status, req)
     }
 

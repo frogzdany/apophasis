@@ -1,6 +1,7 @@
 .terraform/
 .terraform.lock.hcl
 terraform.tfvars
+terraform.tfvars.bak.*
 *.tfstate
 *.tfstate.backup
 crash.log

@@ -188,6 +188,30 @@ resource "google_secret_manager_secret_iam_member" "search_runtime_access" {
   member    = "serviceAccount:${google_service_account.runtime.email}"
 }
 
+# ─── Secret Manager: RECAPTCHA_SECRET_KEY ────────────────────────────────
+# Used by /api/visitor to verify reCAPTCHA v3 tokens via siteverify. The
+# matching SITE key is public and exposed via /api/config, so it's a plain
+# Cloud Run env var (see RECAPTCHA_SITE_KEY below) — not Secret Manager.
+resource "google_secret_manager_secret" "recaptcha_secret" {
+  secret_id = "${var.service_name}-recaptcha-secret-key"
+  replication {
+    auto {}
+  }
+  depends_on = [google_project_service.this]
+}
+
+resource "google_secret_manager_secret_version" "recaptcha_secret" {
+  count       = var.recaptcha_secret_key == "" ? 0 : 1
+  secret      = google_secret_manager_secret.recaptcha_secret.id
+  secret_data = var.recaptcha_secret_key
+}
+
+resource "google_secret_manager_secret_iam_member" "recaptcha_runtime_access" {
+  secret_id = google_secret_manager_secret.recaptcha_secret.id
+  role      = "roles/secretmanager.secretAccessor"
+  member    = "serviceAccount:${google_service_account.runtime.email}"
+}
+
 # ─── Cloud Run service ───────────────────────────────────────────────────
 resource "google_cloud_run_v2_service" "lucy" {
   name                = var.service_name
@@ -251,6 +275,27 @@ resource "google_cloud_run_v2_service" "lucy" {
           value_source {
             secret_key_ref {
               secret  = google_secret_manager_secret.search[env.key].secret_id
+              version = "latest"
+            }
+          }
+        }
+      }
+
+      # reCAPTCHA v3 — public site key as plain env (browser fetches it via
+      # /api/config and lazy-loads grecaptcha against it); secret key from
+      # Secret Manager so server-side siteverify never sees the raw value
+      # in the Cloud Run service spec.
+      env {
+        name  = "RECAPTCHA_SITE_KEY"
+        value = var.recaptcha_site_key
+      }
+      dynamic "env" {
+        for_each = google_secret_manager_secret_version.recaptcha_secret
+        content {
+          name = "RECAPTCHA_SECRET_KEY"
+          value_source {
+            secret_key_ref {
+              secret  = google_secret_manager_secret.recaptcha_secret.secret_id
               version = "latest"
             }
           }

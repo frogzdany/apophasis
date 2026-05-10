@@ -26,6 +26,27 @@ const MIC_KEY = 'lucy:micId'
 const LANG_KEY = 'lucy:lang'
 const VOICE_KEY = 'lucy:voice'
 const INPUT_MODE_KEY = 'lucy:inputMode'
+const VISITOR_KEY = 'lucy:visitor'
+
+export interface VisitorRecord {
+  name: string
+  email: string
+  linkedin?: string
+  submittedAt: string
+}
+
+function readInitialVisitor(): VisitorRecord | null {
+  if (typeof window === 'undefined') return null
+  try {
+    const raw = localStorage.getItem(VISITOR_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as VisitorRecord
+    if (!parsed?.name || !parsed?.email || !parsed?.submittedAt) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
 
 export type InputMode = 'voice' | 'text'
 
@@ -213,6 +234,10 @@ interface Store {
   drawingOpen: boolean
   drawingPrompt: string | null
   drawingInterpretation: DrawingInterpretation | null
+  // Visitor registration. Populated from localStorage on init; once
+  // present the VisitorDialog stays hidden. `null` means we still need
+  // to gate access behind the registration form.
+  visitor: VisitorRecord | null
 
   setPhase(phase: Phase): void
   setMicLevel(level: number): void
@@ -246,6 +271,7 @@ interface Store {
   clearUserLocation(): void
   setDrawingOpen(open: boolean, prompt?: string | null): void
   setDrawingInterpretation(interp: DrawingInterpretation | null): void
+  setVisitor(visitor: VisitorRecord | null): void
 }
 
 // Structured payload returned by /api/interpret-drawing. Mirrors the
@@ -418,6 +444,19 @@ export const useStore = create<Store>((set, get) => ({
   setDrawingOpen: (open, prompt = null) =>
     set({ drawingOpen: open, drawingPrompt: prompt ?? null }),
   setDrawingInterpretation: (interp) => set({ drawingInterpretation: interp }),
+  visitor: readInitialVisitor(),
+  setVisitor: (visitor) => {
+    try {
+      if (visitor) {
+        localStorage.setItem(VISITOR_KEY, JSON.stringify(visitor))
+      } else {
+        localStorage.removeItem(VISITOR_KEY)
+      }
+    } catch {
+      /* noop */
+    }
+    set({ visitor })
+  },
   registerSurface: (id) =>
     set((s) => {
       if (s.surfaceIds.includes(id)) return {}
