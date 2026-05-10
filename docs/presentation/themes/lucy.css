@@ -5,6 +5,16 @@
 
 @import 'default';
 
+/* Force dark color-scheme so Marp's default theme uses its dark
+   `light-dark(...)` variants. Without this, Chromium's print-to-PDF
+   pipeline defaults to "light" and the fallback foreground is dark
+   text — which is what made plain table cell text invisible on this
+   theme's dark background. */
+:root,
+section {
+  color-scheme: dark;
+}
+
 :root {
   --bg: #0a0b14;
   --bg-elev: rgba(255, 255, 255, 0.04);
@@ -108,38 +118,47 @@ table {
   width: 100%;
   font-size: 21px;
   margin: 12px 0;
-  background: rgba(10, 11, 20, 0.78);
-  border: 1px solid var(--rule);
+  /* Solid-ish dark fill instead of low-alpha rgba — Marp's PDF render
+     pipeline collapses backdrop-filter + stacked alphas into a near-
+     transparent block that washes out cell text. */
+  background: #0e1023;
+  border: 1px solid rgba(255, 255, 255, 0.14);
   border-radius: 12px;
   overflow: hidden;
-  backdrop-filter: blur(4px);
 }
 
 th, td {
   text-align: left;
   padding: 11px 16px;
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
   vertical-align: top;
-  color: var(--fg);
+  /* Marp PDF render was dropping inherited opacity on td/text, leaving
+     cell content nearly invisible against the dark background. Forcing
+     a fully-opaque near-white + a slightly heavier weight defeats both
+     the alpha collapse and the hairline anti-aliasing. */
+  color: #f5f7fb !important;
+  font-weight: 450;
+  opacity: 1;
 }
 
-tbody tr:nth-child(odd) td { background: rgba(255, 255, 255, 0.03); }
-tbody tr:nth-child(even) td { background: rgba(255, 255, 255, 0.01); }
+tbody td { color: #f5f7fb !important; opacity: 1; }
+tbody tr:nth-child(odd) td { background: rgba(255, 255, 255, 0.06); }
+tbody tr:nth-child(even) td { background: rgba(255, 255, 255, 0.02); }
 tbody tr:last-child td { border-bottom: 0; }
 
 th {
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(76, 201, 240, 0.12);
   color: var(--accent-1);
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   font-size: 17px;
-  border-bottom: 1px solid var(--rule);
+  border-bottom: 1px solid rgba(76, 201, 240, 0.22);
 }
 
 td code, th code {
-  background: rgba(76, 201, 240, 0.10);
-  border-color: rgba(76, 201, 240, 0.25);
+  background: rgba(76, 201, 240, 0.16);
+  border-color: rgba(76, 201, 240, 0.32);
   color: var(--accent-1);
 }
 
@@ -254,25 +273,28 @@ img {
 
 section.diagram {
   text-align: center;
-  padding: 40px 56px 36px;
+  padding: 36px 56px 32px;
 }
 
 section.diagram h1 { font-size: 40px; }
-section.diagram h2 { font-size: 22px; margin-bottom: 18px; }
+section.diagram h2 { font-size: 22px; margin-bottom: 14px; }
 
 section.diagram img {
   display: block;
-  margin: 0 auto 18px;
-  max-height: 60vh;
+  margin: 0 auto 14px;
+  /* Cap height so the caption + page-number footer have room. The
+     previous 60vh let captions slip under the footer on dense
+     descriptions. */
+  max-height: 50vh;
 }
 
 section.diagram p.caption {
-  font-size: 19px;
+  font-size: 17px;
   color: var(--fg-muted);
   text-align: left;
-  max-width: 1080px;
+  max-width: 880px;
   margin: 0 auto;
-  line-height: 1.45;
+  line-height: 1.4;
 }
 
 section.diagram p.caption strong { color: var(--fg); }
@@ -294,10 +316,35 @@ section.lead.hero h3 {
 /* Tighter spacing on the dense pillar slides */
 section.dense {
   font-size: 22px;
-  padding: 44px 60px 36px;
+  padding: 40px 56px 32px;
 }
 
-section.dense h1 { font-size: 44px; }
-section.dense h2 { font-size: 22px; margin-bottom: 18px; }
-section.dense h3 { font-size: 19px; margin: 10px 0 4px; }
-section.dense ul li { margin: 3px 0; }
+section.dense h1 { font-size: 40px; margin-bottom: 4px; }
+section.dense h2 { font-size: 22px; margin-bottom: 14px; padding-bottom: 8px; }
+section.dense h3 { font-size: 18px; margin: 6px 0 4px; }
+section.dense ul li,
+section.dense ol li { margin: 2px 0; }
+section.dense ol { padding-left: 1.4em; }
+/* Slide 4 — `cols dense` with a numbered list in the right column. The
+   item-3 + item-5 wraps were overflowing the slide height; bumping
+   line-height down and shaving the H1 size keeps the list inside. */
+section.cols.dense h1 { font-size: 36px; line-height: 1.18; }
+section.cols.dense ol { font-size: 20px; line-height: 1.35; }
+
+/* Inside dense pillar slides, compress the .pillar cards further so two
+   pillars worth of bullets + blockquote fit without spilling under the
+   page footer. The base .pillar styles still apply on non-dense slides
+   (pillars 1 & 2) which have less content per card. */
+section.dense .pillar { padding: 12px 16px; }
+section.dense .pillar h3 { margin: 0 0 4px; }
+section.dense .pillar p,
+section.dense .pillar ul { font-size: 17px; line-height: 1.38; }
+section.dense .pillar ul { margin: 2px 0; }
+section.dense .pillar ul li { margin: 1px 0; }
+section.dense .pillar blockquote {
+  padding: 4px 14px;
+  margin: 4px 0 6px;
+  font-size: 16px;
+  line-height: 1.35;
+}
+section.dense.cols { row-gap: 0; column-gap: 32px; }

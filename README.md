@@ -13,6 +13,8 @@ GCP Cloud Run.
 
 **Live demo:** [https://lucy-blob-nvfgf6doka-uc.a.run.app/](https://lucy-blob-nvfgf6doka-uc.a.run.app/)
 
+**Pitch deck (PDF):** [docs/presentation/presentation.pdf](docs/presentation/presentation.pdf) — the deck we ran at the AI Tinkerers Vibe Coding hackathon.
+
 ---
 
 ## Table of contents
@@ -70,27 +72,9 @@ GCP Cloud Run.
 
 ## Architecture
 
-```
-                       Browser (Vite SPA)
-   ┌──────────────────────────────────────────────────────────┐
-   │  React + three.js scene                                  │
-   │   ├─ AudioRecorder ──► Gemini Live (WebSocket)           │
-   │   ├─ AudioStreamer ◄──                                   │
-   │   ├─ A2UI processor (renders Lucy's UI surfaces)         │
-   │   └─ Search providers ──► /api/search/<provider>         │
-   └────────────────────────┬─────────────────────────────────┘
-                            │
-   ┌────────────────────────▼─────────────────────────────────┐
-   │  Bun server (server/index.ts)                            │
-   │   ├─ /api/gemini-token   mints short-lived Live tokens   │
-   │   ├─ /api/log            JSONL session events → GCS/local│
-   │   ├─ /api/search/web     fan-out: Brave + Tavily + Exa   │
-   │   ├─ /api/search/books   SerpApi (Google Books, udm=36)  │
-   │   ├─ /api/search/places  SerpApi (Google Maps)           │
-   │   ├─ /api/search/products SerpApi (Google Shopping)      │
-   │   └─ /api/health         liveness + cache stats          │
-   └──────────────────────────────────────────────────────────┘
-```
+![Apophasis architecture — Visitor browser at the top, the Cloud Run service (Vite SPA + Bun server) in the middle, and three downstream clusters: GCP managed (Secret Manager + GCS), Upstream APIs (Brave, Tavily, Exa, SerpApi, Google Places + Books + YouTube, Geocoding, reCAPTCHA), and Gemini API (Live + drawing-vision + surface-gen). Edges labeled with the contract on each hop.](docs/architecture-logical.png)
+
+Source for the diagram lives at [docs/architecture-logical.py](docs/architecture-logical.py) — uses the [`diagrams`](https://diagrams.mingrammer.com/) Python package with the official GCP icon set, rendered via Graphviz.
 
 Browser providers for `search_music` (iTunes) and `search_video`
 (YouTube Data API) call upstream directly because they're CORS-open and
