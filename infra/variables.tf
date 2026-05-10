@@ -95,6 +95,26 @@ variable "youtube_api_key" {
   default     = ""
 }
 
+# reCAPTCHA v3 keys for the visitor-registration dialog.
+# Site key is public — exposed to the browser via /api/config so the
+# frontend can lazy-load the grecaptcha SDK against it. Lives as a plain
+# Cloud Run env var, not Secret Manager.
+# Secret key is private — used by the server's /api/visitor route to
+# call siteverify and check the score. Lives in Secret Manager like the
+# other sensitive keys.
+variable "recaptcha_site_key" {
+  description = "Public reCAPTCHA v3 site key. Exposed to the browser via /api/config."
+  type        = string
+  default     = ""
+}
+
+variable "recaptcha_secret_key" {
+  description = "Private reCAPTCHA v3 secret key. Used server-side by /api/visitor to verify tokens."
+  type        = string
+  sensitive   = true
+  default     = ""
+}
+
 variable "logs_prefix" {
   description = "Object prefix inside the logs bucket."
   type        = string

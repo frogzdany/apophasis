@@ -17,6 +17,7 @@ import { LocationToggle } from '@/ui/LocationToggle'
 import { ResultGallery } from '@/ui/ResultGallery'
 import { SurfacePanel } from '@/ui/SurfacePanel'
 import { Transcript } from '@/ui/Transcript'
+import { VisitorDialog } from '@/ui/VisitorDialog'
 
 export default function App() {
   const lite = useStore((s) => s.lite)
@@ -109,6 +110,7 @@ export default function App() {
       <SurfacePanel />
       <Controls />
       <DrawingCanvas />
+      <VisitorDialog />
 
       {/* Onboarding tour — self-contained overlay */}
       <button
