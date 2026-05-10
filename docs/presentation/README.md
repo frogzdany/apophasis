@@ -12,10 +12,11 @@ Hackathon pitch deck for the **Beyond the Chatbox 2026** brief.
 
 ## Building
 
-The deck reuses the `@marp-team/marp-cli` already installed in the sibling
-repo at `/Users/dreyes/Documents/Freelance/codex/marp-demo` — no new
-devDependency on `lucy-blob`. Override the path with `MARP_BIN=…` if the
-marp-demo folder moves.
+`@marp-team/marp-cli` is a devDependency of this repo, so a fresh clone
+plus `bun install` at the repo root is enough to render the deck. The
+build script also falls back to `bunx`/`npx` so you can render without
+installing first. Override the binary with `MARP_BIN=/path/to/marp` if
+you want to use a globally installed copy.
 
 ```bash
 chmod +x build.sh    # first time only

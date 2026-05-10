@@ -16,7 +16,7 @@
 // The backdrop blurs the existing 3D canvas underneath so the
 // iridescent ambience stays visible behind the form.
 
-import { Loader2, ShieldCheck, Sparkles } from 'lucide-react'
+import { ExternalLink, Languages, Loader2, ShieldCheck, Sparkles } from 'lucide-react'
 import { type FormEvent, useState } from 'react'
 import heroSrc from '@/assets/apophasis-lucy.jpg'
 import { Badge } from '@/components/ui/badge'
@@ -24,9 +24,13 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { useT } from '@/hooks/useT'
-import { type Language, t } from '@/lib/messages'
+import { LANGUAGE_LABEL, type Language, t } from '@/lib/messages'
 import { executeRecaptcha } from '@/lib/recaptcha'
 import { useStore } from '@/store'
+
+const LINKEDIN_POST_URL =
+  'https://www.linkedin.com/posts/joseph-casimiro-mart%C3%ADnez-869808315_hackathon-generativeui-geminilive-ugcPost-7459028702488739841-BKcq'
+const REPO_URL = 'https://github.com/frogzdany/apophasis'
 
 const RECAPTCHA_ACTION = 'visitor_register'
 
@@ -70,6 +74,7 @@ export function VisitorDialog() {
   const visitor = useStore((s) => s.visitor)
   const setVisitor = useStore((s) => s.setVisitor)
   const language = useStore((s) => s.language)
+  const toggleLanguage = useStore((s) => s.toggleLanguage)
   const { t: tt } = useT()
 
   const [name, setName] = useState('')
@@ -127,6 +132,20 @@ export function VisitorDialog() {
       className="pointer-events-auto fixed inset-0 z-50 flex items-center justify-center bg-black/40 px-4 py-6 backdrop-blur-2xl"
     >
       <div className="relative flex w-full max-w-3xl flex-col overflow-hidden rounded-3xl border border-white/15 bg-background/85 shadow-2xl backdrop-blur-xl md:flex-row md:max-h-[90vh]">
+        {/* Language toggle — sits in the dialog itself since the bottom
+            controls bar is blocked by the modal backdrop. Submitting in
+            the wrong language is a small but real friction at a
+            bilingual demo. */}
+        <button
+          type="button"
+          onClick={toggleLanguage}
+          title={tt('controls.langTooltip')}
+          aria-label={tt('controls.langTooltip')}
+          className="absolute top-3 right-3 z-10 inline-flex items-center gap-1 rounded-full border border-white/10 bg-background/70 px-2.5 py-1 font-mono text-[10px] uppercase tracking-widest text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <Languages className="size-3" />
+          {LANGUAGE_LABEL[language]}
+        </button>
         {/* Hero column */}
         <div className="relative flex shrink-0 flex-col gap-3 bg-black/40 p-5 md:w-[44%] md:p-6">
           <Badge
@@ -228,6 +247,26 @@ export function VisitorDialog() {
               <ShieldCheck className="size-3 shrink-0" />
               {tt('visitor.fineprint')}
             </p>
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1.5 text-[10px] text-muted-foreground/70">
+              <a
+                href={LINKEDIN_POST_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 underline-offset-2 hover:text-foreground hover:underline"
+              >
+                <ExternalLink className="size-3" />
+                {tt('visitor.link.linkedin')}
+              </a>
+              <a
+                href={REPO_URL}
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1 underline-offset-2 hover:text-foreground hover:underline"
+              >
+                <ExternalLink className="size-3" />
+                {tt('visitor.link.repo')}
+              </a>
+            </div>
           </div>
         </form>
       </div>
