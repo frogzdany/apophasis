@@ -206,6 +206,13 @@ interface Store {
   // label; `status` tracks the prompt lifecycle for the LocationToggle UI.
   userLocation: UserLocation | null
   userLocationStatus: UserLocationStatus
+  // Drawing-canvas state. `drawingOpen` mounts the canvas overlay;
+  // `drawingPrompt` is the optional natural-language prompt shown above
+  // the canvas; `drawingInterpretation` is the structured result
+  // returned by /api/interpret-drawing once the user submits.
+  drawingOpen: boolean
+  drawingPrompt: string | null
+  drawingInterpretation: DrawingInterpretation | null
 
   setPhase(phase: Phase): void
   setMicLevel(level: number): void
@@ -237,6 +244,20 @@ interface Store {
   setUserLocationStatus(status: UserLocationStatus): void
   setUserLocation(location: UserLocation | null, status?: UserLocationStatus): void
   clearUserLocation(): void
+  setDrawingOpen(open: boolean, prompt?: string | null): void
+  setDrawingInterpretation(interp: DrawingInterpretation | null): void
+}
+
+// Structured payload returned by /api/interpret-drawing. Mirrors the
+// server-side type without importing it (the server module pulls in the
+// `openai` package). The drawing components produce / consume this
+// shape; downstream surface generation reuses it verbatim.
+export interface DrawingInterpretation {
+  description: string
+  domain: string
+  searchQuery: string
+  title: string
+  attributes: Record<string, string | number>
 }
 
 export const useStore = create<Store>((set, get) => ({
@@ -391,6 +412,12 @@ export const useStore = create<Store>((set, get) => ({
       userLocationStatus: status ?? (location ? 'granted' : 'idle'),
     }),
   clearUserLocation: () => set({ userLocation: null, userLocationStatus: 'idle' }),
+  drawingOpen: false,
+  drawingPrompt: null,
+  drawingInterpretation: null,
+  setDrawingOpen: (open, prompt = null) =>
+    set({ drawingOpen: open, drawingPrompt: prompt ?? null }),
+  setDrawingInterpretation: (interp) => set({ drawingInterpretation: interp }),
   registerSurface: (id) =>
     set((s) => {
       if (s.surfaceIds.includes(id)) return {}

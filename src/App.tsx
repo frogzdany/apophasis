@@ -12,6 +12,7 @@ import { Blob } from '@/scene/Blob'
 import { useStore } from '@/store'
 import { Controls } from '@/ui/Controls'
 import { ConversationSidebar } from '@/ui/ConversationSidebar'
+import { DrawingCanvas } from '@/ui/DrawingCanvas'
 import { LocationToggle } from '@/ui/LocationToggle'
 import { ResultGallery } from '@/ui/ResultGallery'
 import { SurfacePanel } from '@/ui/SurfacePanel'
@@ -107,6 +108,7 @@ export default function App() {
       <ResultGallery />
       <SurfacePanel />
       <Controls />
+      <DrawingCanvas />
 
       {/* Onboarding tour — self-contained overlay */}
       <button
