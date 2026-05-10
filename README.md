@@ -6,6 +6,8 @@
 > agent powered by Gemini Live; she listens, builds live UI panels you can
 > tune in real time, and converges on the result.
 
+![Apophasis — Lucy mid-listen: the iridescent blob at center stage, the geolocation toggle in the top-right, and the Spanish-language control bar at the bottom (Hablar con Lucy / Voz / Lite / Tutorial).](docs/apophasis-lucy.jpg)
+
 This repo is the demo SPA + thin Bun proxy that runs both locally and on
 GCP Cloud Run.
 
